@@ -1,0 +1,2 @@
+# MessMitra
+Mess Management Application

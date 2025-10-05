@@ -19,9 +19,9 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 pt-8 pb-20 rounded-b-3xl shadow-xl">
+      <div className="bg-linear-to-r from-primary-600 to-primary-700 text-white px-6 pt-8 pb-20 rounded-b-3xl shadow-xl">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
+          <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
             <Utensils className="w-6 h-6 text-white" />
           </div>
           <div>
@@ -55,13 +55,13 @@ export default function Dashboard() {
           </div>
           
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
+            <div className="bg-linear-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
               <p className="text-orange-600 text-sm font-medium mb-1">Lunch</p>
               <p className="text-3xl font-bold text-orange-700">{lunchCount}</p>
               <p className="text-orange-600 text-xs mt-1">members</p>
             </div>
             
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+            <div className="bg-linear-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
               <p className="text-blue-600 text-sm font-medium mb-1">Dinner</p>
               <p className="text-3xl font-bold text-blue-700">{dinnerCount}</p>
               <p className="text-blue-600 text-xs mt-1">members</p>
@@ -91,7 +91,7 @@ export default function Dashboard() {
             </div>
           </div>
           
-          <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-5 border border-amber-200">
+          <div className="bg-linear-to-br from-amber-50 to-amber-100 rounded-xl p-5 border border-amber-200">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-5xl font-bold text-amber-700">{upcomingRenewals}</p>
@@ -109,7 +109,7 @@ export default function Dashboard() {
         {/* Quick Action */}
         <button
           onClick={() => navigate('/attendance')}
-          className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+          className="w-full bg-linear-to-r from-primary-600 to-primary-700 text-white py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
         >
           <CheckCircle className="w-5 h-5" />
           Mark Today's Attendance
@@ -117,21 +117,21 @@ export default function Dashboard() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-3 gap-3 pt-2">
-          <div className="bg-white rounded-xl p-4 text-center border border-slate-100 shadow-sm">
+          <div className="bg-white rounded-xl p-4 text-center border border-slate-100 shadow-xs">
             <p className="text-2xl font-bold text-green-600">
               {mockMembers.filter(m => m.subscriptionStatus === 'active').length}
             </p>
             <p className="text-xs text-slate-600 mt-1">Active</p>
           </div>
           
-          <div className="bg-white rounded-xl p-4 text-center border border-slate-100 shadow-sm">
+          <div className="bg-white rounded-xl p-4 text-center border border-slate-100 shadow-xs">
             <p className="text-2xl font-bold text-amber-600">
               {mockMembers.filter(m => m.subscriptionStatus === 'expiring-soon').length}
             </p>
             <p className="text-xs text-slate-600 mt-1">Expiring</p>
           </div>
           
-          <div className="bg-white rounded-xl p-4 text-center border border-slate-100 shadow-sm">
+          <div className="bg-white rounded-xl p-4 text-center border border-slate-100 shadow-xs">
             <p className="text-2xl font-bold text-red-600">
               {mockMembers.filter(m => m.subscriptionStatus === 'expired').length}
             </p>

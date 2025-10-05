@@ -19,7 +19,7 @@ export default function AddMember() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 pt-8 pb-8 rounded-b-3xl shadow-xl">
+      <div className="bg-linear-to-r from-primary-600 to-primary-700 text-white px-6 pt-8 pb-8 rounded-b-3xl shadow-xl">
         <button
           onClick={() => navigate('/members')}
           className="flex items-center gap-2 mb-6 hover:opacity-80 transition-opacity text-white"
@@ -45,7 +45,7 @@ export default function AddMember() {
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-hidden transition-all"
                 placeholder="Enter member's full name"
                 required
               />
@@ -60,7 +60,7 @@ export default function AddMember() {
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-hidden transition-all"
                 placeholder="+91 98765 43210"
                 required
               />
@@ -75,7 +75,7 @@ export default function AddMember() {
                 type="date"
                 value={formData.subscriptionEndDate}
                 onChange={(e) => setFormData({ ...formData, subscriptionEndDate: e.target.value })}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-hidden transition-all"
                 required
               />
               <p className="text-xs text-slate-500 mt-1">

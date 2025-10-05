@@ -13,7 +13,7 @@ export default function Settings() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 pt-8 pb-20 rounded-b-3xl shadow-xl">
+      <div className="bg-linear-to-r from-primary-600 to-primary-700 text-white px-6 pt-8 pb-20 rounded-b-3xl shadow-xl">
         <h1 className="text-2xl font-bold mb-2 text-white">Settings</h1>
         <p className="text-white text-sm">Manage your account and mess details</p>
       </div>
@@ -22,7 +22,7 @@ export default function Settings() {
       <div className="px-6 -mt-12 pb-24 space-y-4 animate-fade-in">
         <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
           {/* Profile Header */}
-          <div className="bg-gradient-to-br from-primary-50 to-primary-100 p-6 border-b border-slate-100">
+          <div className="bg-linear-to-br from-primary-50 to-primary-100 p-6 border-b border-slate-100">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center">
                 <User className="w-8 h-8 text-white" />

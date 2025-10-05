@@ -56,11 +56,11 @@ export default function Attendance() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 pt-8 pb-8 rounded-b-3xl shadow-xl sticky top-0 z-20">
+      <div className="bg-linear-to-r from-primary-600 to-primary-700 text-white px-6 pt-8 pb-8 rounded-b-3xl shadow-xl sticky top-0 z-20">
         <h1 className="text-2xl font-bold mb-4 text-white">Today's Attendance</h1>
         
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white/20 backdrop-blur rounded-xl p-3">
+          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3">
             <div className="flex items-center gap-2 mb-1">
               <Coffee className="w-4 h-4 text-white" />
               <span className="text-xs font-medium text-white">Lunch</span>
@@ -68,7 +68,7 @@ export default function Attendance() {
             <p className="text-2xl font-bold text-white">{lunchCount}</p>
           </div>
           
-          <div className="bg-white/20 backdrop-blur rounded-xl p-3">
+          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3">
             <div className="flex items-center gap-2 mb-1">
               <Moon className="w-4 h-4 text-white" />
               <span className="text-xs font-medium text-white">Dinner</span>
@@ -79,7 +79,7 @@ export default function Attendance() {
       </div>
 
       {/* Quick Action */}
-      <div className="px-6 py-4 bg-white border-b border-slate-200 sticky top-[180px] z-10 shadow-sm">
+      <div className="px-6 py-4 bg-white border-b border-slate-200 sticky top-[180px] z-10 shadow-xs">
         <button
           onClick={markAllPresent}
           className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold shadow-md hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
@@ -94,7 +94,7 @@ export default function Attendance() {
         {activeMembers.map((member) => (
           <div
             key={member.id}
-            className="bg-white rounded-xl shadow-sm border border-slate-100 p-4"
+            className="bg-white rounded-xl shadow-xs border border-slate-100 p-4"
           >
             <div className="flex items-start justify-between mb-3">
               <div>
@@ -146,7 +146,7 @@ export default function Attendance() {
       </div>
 
       {/* Save Button */}
-      <div className="fixed bottom-20 left-0 right-0 px-6 pb-4 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent pt-6">
+      <div className="fixed bottom-20 left-0 right-0 px-6 pb-4 bg-linear-to-t from-slate-50 via-slate-50 to-transparent pt-6">
         <div className="max-w-lg mx-auto">
           <button
             className="w-full bg-primary-600 text-white py-4 rounded-xl font-semibold shadow-xl hover:bg-primary-700 transition-colors"

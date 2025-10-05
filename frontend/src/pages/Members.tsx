@@ -49,7 +49,7 @@ export default function Members() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 pt-8 pb-8 rounded-b-3xl shadow-xl">
+      <div className="bg-linear-to-r from-primary-600 to-primary-700 text-white px-6 pt-8 pb-8 rounded-b-3xl shadow-xl">
         <h1 className="text-2xl font-bold mb-6 text-white">Members</h1>
         
         {/* Search Bar */}
@@ -60,13 +60,13 @@ export default function Members() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by name or phone..."
-            className="w-full pl-12 pr-4 py-3 rounded-xl bg-white/90 backdrop-blur text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-white/50"
+            className="w-full pl-12 pr-4 py-3 rounded-xl bg-white/90 backdrop-blur-sm text-slate-800 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-white/50"
           />
         </div>
       </div>
 
       {/* Filter Tabs */}
-      <div className="px-6 py-4 bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
+      <div className="px-6 py-4 bg-white border-b border-slate-200 sticky top-0 z-10 shadow-xs">
         <div className="flex gap-2 overflow-x-auto pb-1">
           {[
             { value: 'all', label: 'All' },
@@ -100,7 +100,7 @@ export default function Members() {
             <div
               key={member.id}
               onClick={() => navigate(`/members/${member.id}`)}
-              className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 hover:shadow-md transition-shadow cursor-pointer"
+              className="bg-white rounded-xl shadow-xs border border-slate-100 p-4 hover:shadow-md transition-shadow cursor-pointer"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">

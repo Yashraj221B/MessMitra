@@ -40,7 +40,7 @@ export default function MemberProfile() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 pt-8 pb-20 rounded-b-3xl shadow-xl">
+      <div className="bg-linear-to-r from-primary-600 to-primary-700 text-white px-6 pt-8 pb-20 rounded-b-3xl shadow-xl">
         <button
           onClick={() => navigate('/members')}
           className="flex items-center gap-2 mb-6 hover:opacity-80 transition-opacity text-white"
@@ -50,7 +50,7 @@ export default function MemberProfile() {
         </button>
         
         <div className="text-center">
-          <div className="w-24 h-24 bg-white/20 backdrop-blur rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4">
             <UserCircle className="w-16 h-16 text-white" />
           </div>
           <h1 className="text-2xl font-bold mb-2 text-white">{member.name}</h1>
@@ -68,9 +68,9 @@ export default function MemberProfile() {
         <div className={`rounded-2xl shadow-lg p-6 border ${
           member.daysLeft >= 0
             ? member.daysLeft <= 7
-              ? 'bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200'
-              : 'bg-gradient-to-br from-green-50 to-green-100 border-green-200'
-            : 'bg-gradient-to-br from-red-50 to-red-100 border-red-200'
+              ? 'bg-linear-to-br from-amber-50 to-amber-100 border-amber-200'
+              : 'bg-linear-to-br from-green-50 to-green-100 border-green-200'
+            : 'bg-linear-to-br from-red-50 to-red-100 border-red-200'
         }`}>
           <p className={`text-sm font-medium mb-2 ${
             member.daysLeft >= 0

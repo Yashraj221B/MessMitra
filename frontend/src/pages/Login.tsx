@@ -2,29 +2,36 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, Utensils, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { Button, Input, Card, Alert } from '../components/common';
+import useForm from '../hooks/useForm';
 
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [email, setEmail] = useState('testuser@security.yashraj221b.me');
-  const [password, setPassword] = useState('#@ausbdio$242uashd');
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-    
-    try {
-      await login(email, password);
-      navigate('/dashboard');
-    } catch (err) {
-      setError('Login failed. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { values, handleChange, handleSubmit, isSubmitting } = useForm({
+    initialValues: {
+      email: 'testuser@security.yashraj221b.me',
+      password: '#@ausbdio$242uashd',
+    },
+    onSubmit: async (formValues) => {
+      setError('');
+      try {
+        await login(formValues.email, formValues.password);
+        navigate('/dashboard');
+      } catch (err) {
+        setError('Login failed. Please try again.');
+        throw err;
+      }
+    },
+    validate: (formValues) => {
+      const errors: any = {};
+      if (!formValues.email) errors.email = 'Email is required';
+      if (!formValues.password) errors.password = 'Password is required';
+      return errors;
+    },
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50 flex items-center justify-center px-4">
@@ -48,63 +55,49 @@ export default function Login() {
         </div>
 
         {/* Login Form */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
+        <Card>
           <h2 className="text-xl font-semibold text-slate-800 mb-6">Sign In</h2>
           
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-hidden transition-all"
-                placeholder="your@email.com"
-                required
-              />
-            </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              label="Email Address"
+              value={values.email}
+              onChange={handleChange}
+              placeholder="your@email.com"
+              variant="primary"
+              required
+            />
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-hidden transition-all"
-                placeholder="••••••••"
-                required
-              />
-            </div>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              label="Password"
+              value={values.password}
+              onChange={handleChange}
+              placeholder="••••••••"
+              variant="primary"
+              required
+            />
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                {error}
-              </div>
+              <Alert variant="error">{error}</Alert>
             )}
 
-            <button
+            <Button
               type="submit"
-              disabled={isLoading}
-              className="w-full bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 disabled:cursor-not-allowed text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 shadow-lg"
+              variant="primary"
+              size="md"
+              isLoading={isSubmitting}
+              icon={LogIn}
+              iconPosition="left"
+              fullWidth
             >
-              {isLoading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Signing in...
-                </>
-              ) : (
-                <>
-                  <LogIn className="w-5 h-5" />
-                  Sign In
-                </>
-              )}
-            </button>
+              Sign In
+            </Button>
           </form>
 
           <div className="mt-6 text-center">
@@ -112,7 +105,7 @@ export default function Login() {
               Forgot password?
             </a>
           </div>
-        </div>
+        </Card>
 
         <p className="text-center text-slate-500 text-sm mt-6">
           By signing in, you agree to our Terms & Privacy Policy

@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, AlertCircle, CheckCircle, Utensils, UserPlus, Clock, QrCode, XCircle, IndianRupee } from 'lucide-react';
+import { Users, AlertCircle, CheckCircle, Utensils, UserPlus, XCircle, IndianRupee } from 'lucide-react';
 import { mockMembers, mockAttendance, mockPendingMembers } from '../data/mockData';
+import { useToast } from '../contexts/ToastContext';
+import PendingApprovals from '../components/dashboard/PendingApprovals';
+import StatCard from '../components/dashboard/StatCard';
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [selectedPending, setSelectedPending] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -21,19 +25,21 @@ export default function Dashboard() {
   ).length;
 
   const hasMembers = mockMembers.length > 0;
-  const hasPendingApprovals = mockPendingMembers.length > 0;
 
   const handleApprove = (memberId: string) => {
     setSelectedPending(memberId);
     setShowPaymentModal(true);
   };
 
-  const handleReject = async (_memberId: string) => {
+  const handleReject = async (memberId: string) => {
     setIsProcessing(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      // In production: await api.rejectMember(_memberId)
-      alert('Member enrollment rejected');
+      // In production: await api.rejectMember(memberId)
+      const member = mockPendingMembers.find(m => m.id === memberId);
+      toast.success(`${member?.name || 'Member'}'s enrollment rejected`);
+    } catch (error) {
+      toast.error('Failed to reject member. Please try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -44,9 +50,12 @@ export default function Dashboard() {
     try {
       await new Promise(resolve => setTimeout(resolve, 1500));
       // In production: await api.approveMember(selectedPending, paymentData)
-      alert('Member approved and activated!');
+      const member = mockPendingMembers.find(m => m.id === selectedPending);
+      toast.success(`${member?.name || 'Member'} approved and activated!`);
       setShowPaymentModal(false);
       setSelectedPending(null);
+    } catch (error) {
+      toast.error('Failed to approve member. Please try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -128,65 +137,12 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="px-6 -mt-12 pb-6 space-y-4 animate-fade-in">
         {/* Pending Approvals Section */}
-        {hasPendingApprovals && (
-          <div className="bg-gradient-to-br from-purple-600 to-purple-700 rounded-2xl shadow-xl p-6 border border-purple-500">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
-                  <UserPlus className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-white">Pending Approvals</h2>
-                  <p className="text-white/80 text-xs">{mockPendingMembers.length} new enrollment(s)</p>
-                </div>
-              </div>
-              <button
-                onClick={() => navigate('/generate-qr')}
-                className="bg-white/20 backdrop-blur px-3 py-2 rounded-lg text-white text-sm font-medium hover:bg-white/30 transition-colors flex items-center gap-2"
-              >
-                <QrCode className="w-4 h-4" />
-                New QR
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              {mockPendingMembers.map((member) => (
-                <div key={member.id} className="bg-white/10 backdrop-blur rounded-xl p-4 border border-white/20">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <p className="font-semibold text-white">{member.name}</p>
-                      <p className="text-white/70 text-sm">{member.phone}</p>
-                      <p className="text-white/60 text-xs mt-1">{member.email}</p>
-                    </div>
-                    <div className="flex items-center gap-1 text-white/80 text-xs">
-                      <Clock className="w-3 h-3" />
-                      {new Date(member.enrollmentDate).toLocaleDateString('en-IN')}
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => handleApprove(member.id)}
-                      disabled={isProcessing}
-                      className="bg-green-600 disabled:bg-green-400 text-white py-2 rounded-lg font-semibold text-sm hover:bg-green-700 transition-colors flex items-center justify-center gap-1"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => handleReject(member.id)}
-                      disabled={isProcessing}
-                      className="bg-red-600/80 disabled:bg-red-400 text-white py-2 rounded-lg font-semibold text-sm hover:bg-red-700 transition-colors flex items-center justify-center gap-1"
-                    >
-                      <XCircle className="w-4 h-4" />
-                      Reject
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <PendingApprovals
+          pendingMembers={mockPendingMembers}
+          isProcessing={isProcessing}
+          onApprove={handleApprove}
+          onReject={handleReject}
+        />
 
         {/* Today's Headcount Card */}
         <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-100">
@@ -258,28 +214,28 @@ export default function Dashboard() {
           <span>Generate Enrollment QR</span>
         </button>
 
-        {/* Stats Grid */}
+        {/* Stats Grid - Interactive */}
         <div className="grid grid-cols-3 gap-3 pt-2">
-          <div className="bg-white rounded-xl p-4 text-center border border-slate-100 shadow-sm">
-            <p className="text-2xl font-bold text-green-600">
-              {mockMembers.filter(m => m.subscriptionStatus === 'active').length}
-            </p>
-            <p className="text-xs text-slate-600 mt-1">Active</p>
-          </div>
+          <StatCard
+            value={mockMembers.filter(m => m.subscriptionStatus === 'active').length}
+            label="Active"
+            color="green"
+            filterValue="active"
+          />
           
-          <div className="bg-white rounded-xl p-4 text-center border border-slate-100 shadow-sm">
-            <p className="text-2xl font-bold text-amber-600">
-              {mockMembers.filter(m => m.subscriptionStatus === 'expiring-soon').length}
-            </p>
-            <p className="text-xs text-slate-600 mt-1">Expiring</p>
-          </div>
+          <StatCard
+            value={mockMembers.filter(m => m.subscriptionStatus === 'expiring-soon').length}
+            label="Expiring"
+            color="amber"
+            filterValue="expiring-soon"
+          />
           
-          <div className="bg-white rounded-xl p-4 text-center border border-slate-100 shadow-sm">
-            <p className="text-2xl font-bold text-red-600">
-              {mockMembers.filter(m => m.subscriptionStatus === 'expired').length}
-            </p>
-            <p className="text-xs text-slate-600 mt-1">Expired</p>
-          </div>
+          <StatCard
+            value={mockMembers.filter(m => m.subscriptionStatus === 'expired').length}
+            label="Expired"
+            color="red"
+            filterValue="expired"
+          />
         </div>
       </div>
 

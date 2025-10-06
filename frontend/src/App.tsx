@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { MemberAuthProvider } from './contexts/MemberAuthContext';
+import { ToastProvider } from './contexts/ToastContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import MemberProtectedRoute from './components/MemberProtectedRoute';
 import LandingPage from './pages/LandingPage';
@@ -17,6 +18,8 @@ import GenerateEnrollmentQR from './pages/GenerateEnrollmentQR';
 import EnrollmentForm from './pages/EnrollmentForm';
 import ScanAttendanceQR from './pages/ScanAttendanceQR';
 import MemberDashboard from './pages/MemberDashboard';
+import { MemberSettings } from './pages/MemberSettings';
+import { MealPlanning } from './pages/MealPlanning';
 import Layout from './components/Layout';
 import MemberLayout from './components/MemberLayout';
 import { useEffect } from 'react';
@@ -28,7 +31,8 @@ function App() {
   return (
     <AuthProvider>
       <MemberAuthProvider>
-        <Router>
+        <ToastProvider>
+          <Router>
           <Routes>
             {/* Landing Page - Choose Login Type */}
             <Route path="/" element={<LandingPage />} />
@@ -47,6 +51,16 @@ function App() {
                 <MemberProtectedRoute>
                   <MemberLayout>
                     <MemberDashboard />
+                  </MemberLayout>
+                </MemberProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/member/settings" 
+              element={
+                <MemberProtectedRoute>
+                  <MemberLayout>
+                    <MemberSettings />
                   </MemberLayout>
                 </MemberProtectedRoute>
               } 
@@ -125,11 +139,20 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/meal-planning"
+            element={
+              <ProtectedRoute>
+                <Layout><MealPlanning /></Layout>
+              </ProtectedRoute>
+            }
+          />
 
           {/* Catch all - redirect to landing */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </Router>
+          </Router>
+        </ToastProvider>
       </MemberAuthProvider>
     </AuthProvider>
   );

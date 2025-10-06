@@ -25,32 +25,32 @@ export default function LandingPage() {
           {/* Member Login Card */}
           <button
             onClick={() => navigate('/member/login')}
-            className="group bg-white rounded-3xl shadow-xl hover:shadow-2xl transition-all p-8 border-2 border-transparent hover:border-primary-500 text-left"
+            className="group bg-white rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 p-8 border-2 border-transparent hover:border-blue-400 text-left hover:-translate-y-2 transform"
           >
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg group-hover:shadow-xl">
               <UserCircle className="w-9 h-9 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-3">
+            <h2 className="text-2xl font-bold text-slate-800 mb-3 group-hover:text-blue-600 transition-colors">
               I'm a Member
             </h2>
             <p className="text-slate-600 mb-4">
               Access your meal plans, view today's menu, and mark attendance with QR codes.
             </p>
             <div className="flex items-center text-blue-600 font-semibold group-hover:gap-2 transition-all">
-              <span>Login with OTP</span>
-              <span className="text-xl ml-1">→</span>
+              <span>Login with Email</span>
+              <span className="text-xl ml-1 group-hover:translate-x-1 transition-transform">→</span>
             </div>
           </button>
 
           {/* Manager Login Card */}
           <button
             onClick={() => navigate('/manager/login')}
-            className="group bg-white rounded-3xl shadow-xl hover:shadow-2xl transition-all p-8 border-2 border-transparent hover:border-primary-500 text-left"
+            className="group bg-white rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 p-8 border-2 border-transparent hover:border-primary-400 text-left hover:-translate-y-2 transform"
           >
-            <div className="w-16 h-16 bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <div className="w-16 h-16 bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg group-hover:shadow-xl">
               <ShieldCheck className="w-9 h-9 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-3">
+            <h2 className="text-2xl font-bold text-slate-800 mb-3 group-hover:text-primary-600 transition-colors">
               I'm a Manager
             </h2>
             <p className="text-slate-600 mb-4">
@@ -58,7 +58,7 @@ export default function LandingPage() {
             </p>
             <div className="flex items-center text-primary-600 font-semibold group-hover:gap-2 transition-all">
               <span>Login with Email</span>
-              <span className="text-xl ml-1">→</span>
+              <span className="text-xl ml-1 group-hover:translate-x-1 transition-transform">→</span>
             </div>
           </button>
         </div>

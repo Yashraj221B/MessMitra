@@ -138,7 +138,17 @@ export default function MemberProfile() {
 
         {/* Contact Information */}
         <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-100">
-          <h2 className="text-lg font-semibold text-slate-800 mb-4">Contact Information</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-slate-800">Contact Information</h2>
+            <button
+              className="p-2 hover:bg-slate-100 rounded-lg transition-colors group"
+              title="Edit profile"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-slate-400 group-hover:text-primary-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+          </div>
           
           <div className="space-y-4">
             <div className="flex items-center gap-3">

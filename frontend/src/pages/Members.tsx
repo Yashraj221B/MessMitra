@@ -12,8 +12,12 @@ export default function Members() {
 
   useEffect(() => {
     const filter = searchParams.get('filter');
-    if (filter === 'expiring') {
+    if (filter === 'expiring' || filter === 'expiring-soon') {
       setFilterStatus('expiring-soon');
+    } else if (filter === 'active') {
+      setFilterStatus('active');
+    } else if (filter === 'expired') {
+      setFilterStatus('expired');
     }
   }, [searchParams]);
 

@@ -2,26 +2,37 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMemberAuth } from '../contexts/MemberAuthContext';
 import { User, ArrowLeft, LogIn } from 'lucide-react';
+import { Button, Input, Card, Alert } from '../components/common';
+import useForm from '../hooks/useForm';
 
 export default function MemberLogin() {
   const navigate = useNavigate();
-  const { login, isLoading } = useMemberAuth();
-  
-  const [phone, setPhone] = useState('9123456789');
-  const [password, setPassword] = useState('sgdvfadsyuf');
+  const { login } = useMemberAuth();
   const [error, setError] = useState('');
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    try {
-      await login(phone, password);
-      navigate('/member/dashboard');
-    } catch (err) {
-      setError('Invalid credentials. Please try again.');
-    }
-  };
+  const { values, handleChange, handleSubmit, isSubmitting } = useForm({
+    initialValues: {
+      phone: '9123456789',
+      password: 'sgdvfadsyuf',
+    },
+    onSubmit: async (formValues) => {
+      setError('');
+      try {
+        await login(formValues.phone, formValues.password);
+        navigate('/member/dashboard');
+      } catch (err) {
+        setError('Invalid credentials. Please try again.');
+        throw err;
+      }
+    },
+    validate: (formValues) => {
+      const errors: any = {};
+      if (!formValues.phone) errors.phone = 'Phone number is required';
+      if (formValues.phone.length !== 10) errors.phone = 'Phone must be 10 digits';
+      if (!formValues.password) errors.password = 'Password is required';
+      return errors;
+    },
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50 flex items-center justify-center px-4">
@@ -45,64 +56,51 @@ export default function MemberLogin() {
         </div>
 
         {/* Login Form */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
+        <Card>
           <h2 className="text-xl font-semibold text-slate-800 mb-6">Sign In</h2>
           
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-slate-700 mb-2">
-                Phone Number
-              </label>
-              <input
-                id="phone"
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-hidden transition-all"
-                placeholder="9876543210"
-                required
-                maxLength={10}
-              />
-            </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <Input
+              id="phone"
+              name="phone"
+              type="tel"
+              label="Phone Number"
+              value={values.phone}
+              onChange={handleChange}
+              placeholder="9876543210"
+              maxLength={10}
+              variant="blue"
+              required
+            />
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-hidden transition-all"
-                placeholder="••••••••"
-                required
-              />
-            </div>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              label="Password"
+              value={values.password}
+              onChange={handleChange}
+              placeholder="••••••••"
+              variant="blue"
+              required
+            />
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                {error}
-              </div>
+              <Alert variant="error">{error}</Alert>
             )}
 
-            <button
+            <Button
               type="submit"
-              disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 shadow-lg"
+              variant="primary"
+              size="md"
+              isLoading={isSubmitting}
+              icon={LogIn}
+              iconPosition="left"
+              fullWidth
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400"
             >
-              {isLoading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Signing in...
-                </>
-              ) : (
-                <>
-                  <LogIn className="w-5 h-5" />
-                  Sign In
-                </>
-              )}
-            </button>
+              Sign In
+            </Button>
           </form>
 
           <div className="mt-6 text-center">
@@ -110,7 +108,7 @@ export default function MemberLogin() {
               Forgot password?
             </a>
           </div>
-        </div>
+        </Card>
 
         <p className="text-center text-slate-500 text-sm mt-6">
           By signing in, you agree to our Terms & Privacy Policy

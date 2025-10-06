@@ -1,4 +1,4 @@
-import type { Member, AttendanceRecord, User } from '../types';
+import type { Member, AttendanceRecord, User, Payment, Leave, PendingMember, MenuItem } from '../types';
 
 export const mockMembers: Member[] = [
   {
@@ -105,3 +105,140 @@ export const mockUser: User = {
   messName: 'Shivaji Mess',
   phone: '+91 98765 00000',
 };
+
+export const mockPayments: Payment[] = [
+  {
+    id: '1',
+    memberId: '1',
+    amount: 4500,
+    date: '2025-07-10',
+    method: 'upi',
+    months: 3,
+    status: 'completed',
+  },
+  {
+    id: '2',
+    memberId: '2',
+    amount: 4500,
+    date: '2025-07-20',
+    method: 'cash',
+    months: 3,
+    status: 'completed',
+  },
+  {
+    id: '3',
+    memberId: '3',
+    amount: 3000,
+    date: '2025-08-06',
+    method: 'upi',
+    months: 2,
+    status: 'completed',
+  },
+  {
+    id: '4',
+    memberId: '4',
+    amount: 6000,
+    date: '2025-08-15',
+    method: 'bank-transfer',
+    months: 4,
+    status: 'completed',
+  },
+  {
+    id: '5',
+    memberId: '5',
+    amount: 4500,
+    date: '2025-07-02',
+    method: 'cash',
+    months: 3,
+    status: 'completed',
+  },
+  {
+    id: '6',
+    memberId: '6',
+    amount: 4500,
+    date: '2025-08-25',
+    method: 'upi',
+    months: 3,
+    status: 'completed',
+  },
+  {
+    id: '7',
+    memberId: '7',
+    amount: 4500,
+    date: '2025-07-07',
+    method: 'card',
+    months: 3,
+    status: 'completed',
+  },
+  {
+    id: '8',
+    memberId: '8',
+    amount: 6000,
+    date: '2025-08-01',
+    method: 'upi',
+    months: 4,
+    status: 'completed',
+  },
+];
+
+export const mockLeaves: Leave[] = [
+  {
+    id: '1',
+    memberId: '2',
+    startDate: '2025-10-10',
+    endDate: '2025-10-15',
+    reason: 'Family function',
+    status: 'approved',
+  },
+  {
+    id: '2',
+    memberId: '4',
+    startDate: '2025-10-20',
+    endDate: '2025-10-22',
+    reason: 'Out of town',
+    status: 'approved',
+  },
+];
+
+export const mockPendingMembers: PendingMember[] = [
+  {
+    id: 'pending-1',
+    name: 'Arjun Mehta',
+    phone: '+91 98765 43220',
+    email: 'arjun.mehta@email.com',
+    enrollmentDate: '2025-10-05',
+    status: 'pending',
+  },
+  {
+    id: 'pending-2',
+    name: 'Pooja Sharma',
+    phone: '+91 98765 43221',
+    email: 'pooja.sharma@email.com',
+    enrollmentDate: '2025-10-06',
+    status: 'pending',
+  },
+];
+
+export const mockMenu: MenuItem[] = [
+  {
+    id: '1',
+    mealType: 'breakfast',
+    date: '2025-10-06',
+    items: ['Poha', 'Tea/Coffee', 'Banana'],
+    description: 'Light & healthy breakfast',
+  },
+  {
+    id: '2',
+    mealType: 'lunch',
+    date: '2025-10-06',
+    items: ['Dal Tadka', 'Jeera Rice', 'Roti', 'Mix Veg', 'Salad', 'Curd'],
+    description: 'Wholesome lunch thali',
+  },
+  {
+    id: '3',
+    mealType: 'dinner',
+    date: '2025-10-06',
+    items: ['Paneer Butter Masala', 'Roti', 'Rice', 'Dal', 'Pickle'],
+    description: 'Delicious dinner',
+  },
+];

@@ -1,28 +1,25 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogIn, Utensils, ArrowLeft } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useMemberAuth } from '../contexts/MemberAuthContext';
+import { User, ArrowLeft, LogIn } from 'lucide-react';
 
-export default function Login() {
+export default function MemberLogin() {
   const navigate = useNavigate();
-  const { login } = useAuth();
-  const [email, setEmail] = useState('testuser@security.yashraj221b.me');
-  const [password, setPassword] = useState('#@ausbdio$242uashd');
-  const [isLoading, setIsLoading] = useState(false);
+  const { login, isLoading } = useMemberAuth();
+  
+  const [phone, setPhone] = useState('9123456789');
+  const [password, setPassword] = useState('sgdvfadsyuf');
   const [error, setError] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError('');
-    
+
     try {
-      await login(email, password);
-      navigate('/dashboard');
+      await login(phone, password);
+      navigate('/member/dashboard');
     } catch (err) {
-      setError('Login failed. Please try again.');
-    } finally {
-      setIsLoading(false);
+      setError('Invalid credentials. Please try again.');
     }
   };
 
@@ -40,11 +37,11 @@ export default function Login() {
 
         {/* Logo and Branding */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-2xl mb-4 shadow-lg">
-            <Utensils className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg">
+            <User className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-slate-800 mb-2">Manager Login</h1>
-          <p className="text-slate-600">Access the management dashboard</p>
+          <h1 className="text-3xl font-bold text-slate-800 mb-2">Member Login</h1>
+          <p className="text-slate-600">Access your mess dashboard</p>
         </div>
 
         {/* Login Form */}
@@ -53,17 +50,18 @@ export default function Login() {
           
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
-                Email Address
+              <label htmlFor="phone" className="block text-sm font-medium text-slate-700 mb-2">
+                Phone Number
               </label>
               <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-hidden transition-all"
-                placeholder="your@email.com"
+                placeholder="9876543210"
                 required
+                maxLength={10}
               />
             </div>
 
@@ -76,7 +74,7 @@ export default function Login() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-hidden transition-all"
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-hidden transition-all"
                 placeholder="••••••••"
                 required
               />
@@ -91,7 +89,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 disabled:cursor-not-allowed text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 shadow-lg"
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 shadow-lg"
             >
               {isLoading ? (
                 <>
@@ -108,7 +106,7 @@ export default function Login() {
           </form>
 
           <div className="mt-6 text-center">
-            <a href="#" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+            <a href="#" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
               Forgot password?
             </a>
           </div>

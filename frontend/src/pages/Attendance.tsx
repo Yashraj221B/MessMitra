@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { CheckCircle, Coffee, Moon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { CheckCircle, Coffee, Moon, ScanLine } from 'lucide-react';
 import { mockMembers } from '../data/mockData';
 
 interface AttendanceState {
@@ -10,10 +11,13 @@ interface AttendanceState {
 }
 
 export default function Attendance() {
+  const navigate = useNavigate();
   const activeMembers = mockMembers.filter(
     m => m.subscriptionStatus === 'active' || m.subscriptionStatus === 'expiring-soon'
   );
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedMessage, setSavedMessage] = useState('');
   const [attendance, setAttendance] = useState<AttendanceState>(() => {
     const initial: AttendanceState = {};
     activeMembers.forEach(member => {
@@ -53,10 +57,29 @@ export default function Attendance() {
   const lunchCount = Object.values(attendance).filter(a => a.lunch).length;
   const dinnerCount = Object.values(attendance).filter(a => a.dinner).length;
 
+  const handleSave = async () => {
+    setIsSaving(true);
+    setSavedMessage('');
+    
+    try {
+      // Mock API call - simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      // In production: await api.saveAttendance(attendance)
+      
+      setSavedMessage('Attendance saved successfully!');
+      setTimeout(() => setSavedMessage(''), 3000);
+    } catch (error) {
+      console.error('Failed to save attendance:', error);
+      setSavedMessage('Failed to save. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="bg-linear-to-r from-primary-600 to-primary-700 text-white px-6 pt-8 pb-8 rounded-b-3xl shadow-xl sticky top-0 z-20">
+      <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 pt-8 pb-8 rounded-b-3xl shadow-xl sticky top-0 z-20">
         <h1 className="text-2xl font-bold mb-4 text-white">Today's Attendance</h1>
         
         <div className="grid grid-cols-2 gap-3">
@@ -78,8 +101,15 @@ export default function Attendance() {
         </div>
       </div>
 
-      {/* Quick Action */}
-      <div className="px-6 py-4 bg-white border-b border-slate-200 sticky top-[180px] z-10 shadow-xs">
+      {/* Quick Actions */}
+      <div className="px-6 py-4 bg-white border-b border-slate-200 sticky top-[180px] z-10 shadow-sm space-y-3">
+        <button
+          onClick={() => navigate('/scan-attendance')}
+          className="w-full bg-primary-600 text-white py-3 rounded-xl font-semibold shadow-md hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
+        >
+          <ScanLine className="w-5 h-5" />
+          Scan QR Code
+        </button>
         <button
           onClick={markAllPresent}
           className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold shadow-md hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
@@ -90,11 +120,11 @@ export default function Attendance() {
       </div>
 
       {/* Attendance List */}
-      <div className="px-6 py-4 space-y-3 pb-24 animate-fade-in">
+      <div className="px-6 py-4 space-y-3 pb-32 animate-fade-in">
         {activeMembers.map((member) => (
           <div
             key={member.id}
-            className="bg-white rounded-xl shadow-xs border border-slate-100 p-4"
+            className="bg-white rounded-xl shadow-sm border border-slate-100 p-4"
           >
             <div className="flex items-start justify-between mb-3">
               <div>
@@ -146,12 +176,30 @@ export default function Attendance() {
       </div>
 
       {/* Save Button */}
-      <div className="fixed bottom-20 left-0 right-0 px-6 pb-4 bg-linear-to-t from-slate-50 via-slate-50 to-transparent pt-6">
-        <div className="max-w-lg mx-auto">
+      <div className="fixed bottom-20 left-0 right-0 px-6 pb-4 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent pt-6">
+        <div className="max-w-lg mx-auto space-y-2">
+          {savedMessage && (
+            <div className={`text-center text-sm font-medium py-2 px-4 rounded-lg ${
+              savedMessage.includes('success') 
+                ? 'bg-green-50 text-green-700 border border-green-200' 
+                : 'bg-red-50 text-red-700 border border-red-200'
+            }`}>
+              {savedMessage}
+            </div>
+          )}
           <button
-            className="w-full bg-primary-600 text-white py-4 rounded-xl font-semibold shadow-xl hover:bg-primary-700 transition-colors"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="w-full bg-primary-600 disabled:bg-primary-400 disabled:cursor-not-allowed text-white py-4 rounded-xl font-semibold shadow-xl hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
           >
-            Save Attendance
+            {isSaving ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Saving...
+              </>
+            ) : (
+              'Save Attendance'
+            )}
           </button>
         </div>
       </div>

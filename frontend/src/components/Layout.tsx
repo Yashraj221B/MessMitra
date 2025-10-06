@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Users, CheckSquare, Settings } from 'lucide-react';
+import { Home, Users, CheckSquare, BarChart3, Settings } from 'lucide-react';
 
 interface LayoutProps {
   children: ReactNode;
@@ -10,7 +10,8 @@ export default function Layout({ children }: LayoutProps) {
   const navItems = [
     { to: '/dashboard', icon: Home, label: 'Home' },
     { to: '/members', icon: Users, label: 'Members' },
-    { to: '/attendance', icon: CheckSquare, label: 'Attendance' },
+    { to: '/attendance', icon: CheckSquare, label: 'Attend' },
+    { to: '/reports', icon: BarChart3, label: 'Reports' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ];
 

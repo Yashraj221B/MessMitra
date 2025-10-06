@@ -1,12 +1,15 @@
 import { useNavigate } from 'react-router-dom';
 import { LogOut, User, Phone, Mail, Utensils, ChevronRight } from 'lucide-react';
-import { mockUser } from '../data/mockData';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Settings() {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
+  if (!user) return null;
 
   const handleLogout = () => {
-    // Mock logout - just navigate to login
+    logout();
     navigate('/');
   };
 
@@ -28,8 +31,8 @@ export default function Settings() {
                 <User className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-slate-800">{mockUser.name}</h2>
-                <p className="text-slate-600 text-sm">{mockUser.email}</p>
+                <h2 className="text-xl font-bold text-slate-800">{user.name}</h2>
+                <p className="text-slate-600 text-sm">{user.email}</p>
               </div>
             </div>
           </div>
@@ -47,7 +50,7 @@ export default function Settings() {
                 </div>
                 <div className="flex-1">
                   <p className="text-xs text-slate-500">Mess Name</p>
-                  <p className="font-medium text-slate-800">{mockUser.messName}</p>
+                  <p className="font-medium text-slate-800">{user.messName}</p>
                 </div>
               </div>
 
@@ -57,7 +60,7 @@ export default function Settings() {
                 </div>
                 <div className="flex-1">
                   <p className="text-xs text-slate-500">Phone Number</p>
-                  <p className="font-medium text-slate-800">{mockUser.phone}</p>
+                  <p className="font-medium text-slate-800">{user.phone}</p>
                 </div>
               </div>
 
@@ -67,7 +70,7 @@ export default function Settings() {
                 </div>
                 <div className="flex-1">
                   <p className="text-xs text-slate-500">Email Address</p>
-                  <p className="font-medium text-slate-800">{mockUser.email}</p>
+                  <p className="font-medium text-slate-800">{user.email}</p>
                 </div>
               </div>
             </div>

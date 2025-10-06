@@ -4,16 +4,28 @@ import { ArrowLeft, UserPlus } from 'lucide-react';
 
 export default function AddMember() {
   const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
     subscriptionEndDate: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock submission - just navigate back
-    navigate('/members');
+    setIsSubmitting(true);
+    
+    try {
+      // Mock API call - simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      // In production: await api.createMember(formData)
+      
+      navigate('/members');
+    } catch (error) {
+      console.error('Failed to add member:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -86,16 +98,27 @@ export default function AddMember() {
 
           <button
             type="submit"
-            className="w-full bg-primary-600 text-white py-4 rounded-xl font-semibold shadow-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
+            disabled={isSubmitting}
+            className="w-full bg-primary-600 disabled:bg-primary-400 disabled:cursor-not-allowed text-white py-4 rounded-xl font-semibold shadow-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
           >
-            <UserPlus className="w-5 h-5" />
-            Add Member
+            {isSubmitting ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Adding Member...
+              </>
+            ) : (
+              <>
+                <UserPlus className="w-5 h-5" />
+                Add Member
+              </>
+            )}
           </button>
 
           <button
             type="button"
             onClick={() => navigate('/members')}
-            className="w-full bg-white text-slate-700 py-4 rounded-xl font-semibold border border-slate-200 hover:bg-slate-50 transition-colors"
+            disabled={isSubmitting}
+            className="w-full bg-white text-slate-700 py-4 rounded-xl font-semibold border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Cancel
           </button>

@@ -1,72 +1,29 @@
-export interface Member {
-  id: string;
-  name: string;
-  phone: string;
-  email?: string;
-  subscriptionEndDate: string;
-  subscriptionStatus: 'active' | 'expiring-soon' | 'expired';
-  daysLeft: number;
-  joinDate: string;
-  onLeave?: boolean;
-  leaveStartDate?: string;
-  leaveEndDate?: string;
-  enrollmentStatus?: 'pending' | 'approved' | 'rejected';
+// Central export for all type definitions
+
+export type * from './user.types';
+export type * from './menu.types';
+export type * from './payment.types';
+export type * from './attendance.types';
+export type * from './leave.types';
+export type * from './notification.types';
+
+// Common types
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
 }
 
-export interface PendingMember {
-  id: string;
-  name: string;
-  phone: string;
-  email: string;
-  enrollmentDate: string;
-  status: 'pending';
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
 }
 
-export interface MenuItem {
-  id: string;
-  mealType: 'breakfast' | 'lunch' | 'dinner';
-  date: string;
-  items: string[];
-  description?: string;
-}
-
-export interface QRCodeData {
-  memberId: string;
-  mealType: 'breakfast' | 'lunch' | 'dinner';
-  date: string;
-  timestamp: number;
-}
-
-export interface AttendanceRecord {
-  id: string;
-  memberId: string;
-  date: string;
-  lunch: boolean;
-  dinner: boolean;
-}
-
-export interface Payment {
-  id: string;
-  memberId: string;
-  amount: number;
-  date: string;
-  method: 'cash' | 'upi' | 'card' | 'bank-transfer';
-  months: number;
-  status: 'completed' | 'pending' | 'failed';
-}
-
-export interface Leave {
-  id: string;
-  memberId: string;
-  startDate: string;
-  endDate: string;
-  reason: string;
-  status: 'approved' | 'pending' | 'rejected';
-}
-
-export interface User {
-  name: string;
-  email: string;
-  messName: string;
-  phone: string;
+export interface SelectOption {
+  value: string;
+  label: string;
 }

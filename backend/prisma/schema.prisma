@@ -1,0 +1,371 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model announcements {
+  id              String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  mess_id         String                 @db.Uuid
+  title           String                 @db.VarChar(200)
+  message         String
+  priority        announcement_priority? @default(medium)
+  target_audience target_audience?       @default(all)
+  created_by      String                 @db.Uuid
+  is_active       Boolean?               @default(true)
+  expires_at      DateTime?              @db.Timestamp(6)
+  created_at      DateTime?              @default(now()) @db.Timestamp(6)
+  updated_at      DateTime?              @default(now()) @db.Timestamp(6)
+  users           users                  @relation(fields: [created_by], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_announcements_creator")
+  messes          messes                 @relation(fields: [mess_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_announcements_mess")
+
+  @@index([created_by], map: "idx_announcements_created_by")
+  @@index([is_active], map: "idx_announcements_is_active")
+  @@index([mess_id], map: "idx_announcements_mess_id")
+}
+
+model attendances {
+  id                                  String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  mess_id                             String            @db.Uuid
+  member_id                           String            @db.Uuid
+  date                                DateTime          @db.Date
+  meal_type                           meal_type
+  status                              attendance_status @default(present)
+  scanned_at                          DateTime?         @db.Timestamp(6)
+  scanned_by                          String?           @db.Uuid
+  scan_method                         scan_method?
+  location_lat                        Decimal?          @db.Decimal(10, 8)
+  location_lng                        Decimal?          @db.Decimal(11, 8)
+  location_accuracy                   Decimal?          @db.Decimal(10, 2)
+  device_user_agent                   String?
+  device_ip                           String?           @db.VarChar(45)
+  notes                               String?
+  created_at                          DateTime?         @default(now()) @db.Timestamp(6)
+  updated_at                          DateTime?         @default(now()) @db.Timestamp(6)
+  users_attendances_member_idTousers  users             @relation("attendances_member_idTousers", fields: [member_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_attendance_member")
+  messes                              messes            @relation(fields: [mess_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_attendance_mess")
+  users_attendances_scanned_byTousers users?            @relation("attendances_scanned_byTousers", fields: [scanned_by], references: [id], onUpdate: NoAction, map: "fk_attendance_scanner")
+
+  @@unique([mess_id, member_id, date, meal_type])
+  @@index([date], map: "idx_attendance_date")
+  @@index([member_id, date], map: "idx_attendance_member_date")
+  @@index([member_id], map: "idx_attendance_member_id")
+  @@index([mess_id, date], map: "idx_attendance_mess_date")
+  @@index([mess_id], map: "idx_attendance_mess_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model feedbacks {
+  id                                  String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  mess_id                             String             @db.Uuid
+  member_id                           String?            @db.Uuid
+  rating                              Int
+  comment                             String?
+  category                            feedback_category? @default(other)
+  meal_type                           meal_type?
+  meal_date                           DateTime?          @db.Date
+  is_anonymous                        Boolean?           @default(false)
+  response                            String?
+  responded_by                        String?            @db.Uuid
+  responded_at                        DateTime?          @db.Timestamp(6)
+  created_at                          DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at                          DateTime?          @default(now()) @db.Timestamp(6)
+  users_feedbacks_member_idTousers    users?             @relation("feedbacks_member_idTousers", fields: [member_id], references: [id], onUpdate: NoAction, map: "fk_feedback_member")
+  messes                              messes             @relation(fields: [mess_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_feedback_mess")
+  users_feedbacks_responded_byTousers users?             @relation("feedbacks_responded_byTousers", fields: [responded_by], references: [id], onUpdate: NoAction, map: "fk_feedback_responder")
+
+  @@index([category], map: "idx_feedback_category")
+  @@index([member_id], map: "idx_feedback_member_id")
+  @@index([mess_id], map: "idx_feedback_mess_id")
+  @@index([rating], map: "idx_feedback_rating")
+  @@index([meal_date], map: "idx_feedback_meal_date")
+  @@index([mess_id, meal_date], map: "idx_feedback_mess_meal_date")
+}
+
+model leaves {
+  id                              String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  mess_id                         String          @db.Uuid
+  member_id                       String          @db.Uuid
+  start_date                      DateTime        @db.Date
+  end_date                        DateTime        @db.Date
+  total_days                      Int
+  reason                          String
+  category                        leave_category? @default(personal)
+  status                          leave_status?   @default(pending)
+  reviewed_by                     String?         @db.Uuid
+  reviewed_at                     DateTime?       @db.Timestamp(6)
+  review_notes                    String?
+  notification_sent               Boolean?        @default(false)
+  member_notified                 Boolean?        @default(false)
+  created_at                      DateTime?       @default(now()) @db.Timestamp(6)
+  updated_at                      DateTime?       @default(now()) @db.Timestamp(6)
+  cancelled_at                    DateTime?       @db.Timestamp(6)
+  users_leaves_member_idTousers   users           @relation("leaves_member_idTousers", fields: [member_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_leaves_member")
+  messes                          messes          @relation(fields: [mess_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_leaves_mess")
+  users_leaves_reviewed_byTousers users?          @relation("leaves_reviewed_byTousers", fields: [reviewed_by], references: [id], onUpdate: NoAction, map: "fk_leaves_reviewer")
+
+  @@index([start_date, end_date], map: "idx_leaves_dates")
+  @@index([member_id], map: "idx_leaves_member_id")
+  @@index([mess_id], map: "idx_leaves_mess_id")
+  @@index([status], map: "idx_leaves_status")
+}
+
+model menus {
+  id                   String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  mess_id              String    @db.Uuid
+  date                 DateTime  @db.Date
+  breakfast_items      String[]
+  breakfast_time       String?   @db.VarChar(20)
+  breakfast_calories   Int?
+  breakfast_is_special Boolean?  @default(false)
+  lunch_items          String[]
+  lunch_time           String?   @db.VarChar(20)
+  lunch_calories       Int?
+  lunch_is_special     Boolean?  @default(false)
+  dinner_items         String[]
+  dinner_time          String?   @db.VarChar(20)
+  dinner_calories      Int?
+  dinner_is_special    Boolean?  @default(false)
+  notes                String?
+  is_holiday           Boolean?  @default(false)
+  created_at           DateTime? @default(now()) @db.Timestamp(6)
+  updated_at           DateTime? @default(now()) @db.Timestamp(6)
+  messes               messes    @relation(fields: [mess_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_menus_mess")
+
+  @@unique([mess_id, date])
+  @@index([date], map: "idx_menus_date")
+  @@index([mess_id, date], map: "idx_menus_mess_date")
+  @@index([mess_id], map: "idx_menus_mess_id")
+}
+
+model messes {
+  id                           String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name                         String          @db.VarChar(100)
+  owner_id                     String          @db.Uuid
+  address                      String
+  phone                        String?         @db.VarChar(15)
+  email                        String?         @db.VarChar(100)
+  description                  String?
+  capacity                     Int
+  current_members              Int?            @default(0)
+  monthly_fee                  Decimal         @db.Decimal(10, 2)
+  security_deposit             Decimal?        @default(0) @db.Decimal(10, 2)
+  breakfast_time               String?         @db.VarChar(20)
+  lunch_time                   String?         @db.VarChar(20)
+  dinner_time                  String?         @db.VarChar(20)
+  has_attendance               Boolean?        @default(true)
+  has_payments                 Boolean?        @default(true)
+  has_menu_planning            Boolean?        @default(true)
+  has_feedback                 Boolean?        @default(true)
+  has_qr_scanning              Boolean?        @default(true)
+  auto_approve_requests        Boolean?        @default(false)
+  require_security_deposit     Boolean?        @default(false)
+  send_payment_reminders       Boolean?        @default(true)
+  allow_feedback               Boolean?        @default(true)
+  show_menu_in_advance         Int?            @default(7)
+  qr_code                      String?         @unique
+  qr_code_expiry               DateTime?       @db.Timestamp(6)
+  is_active                    Boolean?        @default(true)
+  created_at                   DateTime?       @default(now()) @db.Timestamp(6)
+  updated_at                   DateTime?       @default(now()) @db.Timestamp(6)
+  announcements                announcements[]
+  attendances                  attendances[]
+  feedbacks                    feedbacks[]
+  leaves                       leaves[]
+  menus                        menus[]
+  users_messes_owner_idTousers users           @relation("messes_owner_idTousers", fields: [owner_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_messes_owner")
+  notifications                notifications[]
+  payments                     payments[]
+  users_users_mess_idTomesses  users[]         @relation("users_mess_idTomesses")
+
+  @@index([is_active], map: "idx_messes_is_active")
+  @@index([owner_id], map: "idx_messes_owner_id")
+  @@index([qr_code], map: "idx_messes_qr_code")
+}
+
+model notifications {
+  id         String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id    String            @db.Uuid
+  mess_id    String?           @db.Uuid
+  type       notification_type
+  title      String            @db.VarChar(200)
+  message    String
+  metadata   Json?
+  is_read    Boolean?          @default(false)
+  read_at    DateTime?         @db.Timestamp(6)
+  created_at DateTime?         @default(now()) @db.Timestamp(6)
+  messes     messes?           @relation(fields: [mess_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_notifications_mess")
+  users      users             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_notifications_user")
+
+  @@index([is_read], map: "idx_notifications_is_read")
+  @@index([mess_id], map: "idx_notifications_mess_id")
+  @@index([type], map: "idx_notifications_type")
+  @@index([user_id], map: "idx_notifications_user_id")
+}
+
+model payments {
+  id               String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  mess_id          String          @db.Uuid
+  member_id        String          @db.Uuid
+  month            Int
+  year             Int
+  amount           Decimal         @db.Decimal(10, 2)
+  paid_amount      Decimal?        @default(0) @db.Decimal(10, 2)
+  late_fee         Decimal?        @default(0) @db.Decimal(10, 2)
+  due_date         DateTime        @db.Date
+  paid_date        DateTime?       @db.Date
+  status           payment_status? @default(pending)
+  payment_method   payment_method?
+  transaction_id   String?         @db.VarChar(100)
+  receipt_number   String?         @db.VarChar(50)
+  notes            String?
+  reminders_sent   Int?            @default(0)
+  last_reminder_at DateTime?       @db.Timestamp(6)
+  created_at       DateTime?       @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?       @default(now()) @db.Timestamp(6)
+  users            users           @relation(fields: [member_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_payments_member")
+  messes           messes          @relation(fields: [mess_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_payments_mess")
+
+  @@unique([mess_id, member_id, month, year])
+  @@index([due_date], map: "idx_payments_due_date")
+  @@index([member_id], map: "idx_payments_member_id")
+  @@index([mess_id], map: "idx_payments_mess_id")
+  @@index([month, year], map: "idx_payments_period")
+  @@index([status], map: "idx_payments_status")
+}
+
+model users {
+  id                                        String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  phone                                     String          @unique @db.VarChar(15)
+  password                                  String          @db.VarChar(255)
+  name                                      String          @db.VarChar(100)
+  email                                     String?         @db.VarChar(100)
+  role                                      user_role       @default(member)
+  profile_picture                           String?
+  is_active                                 Boolean?        @default(true)
+  mess_id                                   String?         @db.Uuid
+  join_status                               join_status?    @default(pending)
+  language                                  String?         @default("en") @db.VarChar(10)
+  theme                                     String?         @default("light") @db.VarChar(20)
+  notifications_enabled                     Boolean?        @default(true)
+  token_version                             Int?            @default(0)
+  refresh_token                             String?
+  last_login                                DateTime?       @db.Timestamp(6)
+  created_at                                DateTime?       @default(now()) @db.Timestamp(6)
+  updated_at                                DateTime?       @default(now()) @db.Timestamp(6)
+  announcements                             announcements[]
+  attendances_attendances_member_idTousers  attendances[]   @relation("attendances_member_idTousers")
+  attendances_attendances_scanned_byTousers attendances[]   @relation("attendances_scanned_byTousers")
+  feedbacks_feedbacks_member_idTousers      feedbacks[]     @relation("feedbacks_member_idTousers")
+  feedbacks_feedbacks_responded_byTousers   feedbacks[]     @relation("feedbacks_responded_byTousers")
+  leaves_leaves_member_idTousers            leaves[]        @relation("leaves_member_idTousers")
+  leaves_leaves_reviewed_byTousers          leaves[]        @relation("leaves_reviewed_byTousers")
+  messes_messes_owner_idTousers             messes[]        @relation("messes_owner_idTousers")
+  notifications                             notifications[]
+  payments                                  payments[]
+  messes_users_mess_idTomesses              messes?         @relation("users_mess_idTomesses", fields: [mess_id], references: [id], onUpdate: NoAction, map: "fk_users_mess")
+
+  @@index([join_status], map: "idx_users_join_status")
+  @@index([mess_id], map: "idx_users_mess_id")
+  @@index([phone], map: "idx_users_phone")
+  @@index([role], map: "idx_users_role")
+}
+
+enum announcement_priority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum attendance_status {
+  present
+  absent
+  on_leave @map("on-leave")
+}
+
+enum feedback_category {
+  food_quality
+  service
+  cleanliness
+  staff
+  facilities
+  other
+}
+
+enum join_status {
+  pending
+  approved
+  rejected
+}
+
+enum leave_category {
+  personal
+  medical
+  vacation
+  other
+}
+
+enum leave_status {
+  pending
+  approved
+  rejected
+  cancelled
+}
+
+enum meal_type {
+  breakfast
+  lunch
+  dinner
+}
+
+enum notification_type {
+  join_request
+  join_approved
+  join_rejected
+  payment_due
+  payment_received
+  payment_overdue
+  leave_request
+  leave_approved
+  leave_rejected
+  announcement
+  menu_updated
+  general
+}
+
+enum payment_method {
+  cash
+  upi
+  card
+  bank_transfer
+  other
+}
+
+enum payment_status {
+  pending
+  paid
+  partial
+  overdue
+}
+
+enum scan_method {
+  qr
+  manual
+}
+
+enum target_audience {
+  all
+  managers
+  members
+}
+
+enum user_role {
+  admin
+  manager
+  member
+}

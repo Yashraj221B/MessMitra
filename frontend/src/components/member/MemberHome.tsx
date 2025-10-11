@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Calendar, IndianRupee, Clock, User, Star, QrCode } from 'lucide-react';
 import { motion } from 'motion/react';
 import { MemberBottomNav } from './MemberBottomNav';
+import { userService } from '../../services';
 
 interface MemberHomeProps {
   currentScreen: string;
@@ -10,26 +11,27 @@ interface MemberHomeProps {
 }
 
 export function MemberHome({ currentScreen, onNavigate }: MemberHomeProps) {
-  const [userName, setUserName] = useState('Member');
+  const [userName, setUserName] = useState('');
   const [room, setRoom] = useState('');
   const [memberId, setMemberId] = useState('');
 
   useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
     try {
-      const currentUser = localStorage.getItem('current-user');
-      if (currentUser) {
-        const data = JSON.parse(currentUser);
-        setUserName(data.name || 'Member');
-        setRoom(data.room || '');
-        setMemberId(data.memberId || data.studentId || '');
-      }
+      const profile = await userService.getProfile();
+      setUserName(profile.name || 'Member');
+      setRoom('N/A'); // TODO: Add room field to profile
+      setMemberId(profile.id || '');
     } catch (error) {
       console.error('Error loading user data:', error);
       setUserName('Member');
       setRoom('');
       setMemberId('');
     }
-  }, []);
+  };
 
   // const stats = [
   //   {

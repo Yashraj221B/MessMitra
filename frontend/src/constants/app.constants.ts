@@ -4,21 +4,6 @@ export const APP_NAME = 'MessMitra';
 export const APP_VERSION = '1.0.0';
 export const APP_DESCRIPTION = 'Complete Mess Management Solution';
 
-// Local Storage Keys
-export const STORAGE_KEYS = {
-  AUTH: 'messmitra-auth',
-  ROLE: 'messmitra-role',
-  CURRENT_USER: 'current-user',
-  BASIC_DETAILS: 'messmitra-basic-details',
-  LANGUAGE: 'messmitra-language',
-  NOTIFICATIONS: 'messmitra-notifications',
-  USERS_DB: 'messmitra-users-db',
-  LEAVE_REQUESTS: 'leave-requests',
-  MENU_DATA: 'messmitra-menu-data',
-  ATTENDANCE_DATA: 'messmitra-attendance-data',
-  PAYMENT_DATA: 'messmitra-payment-data',
-} as const;
-
 // Screen/Route Names
 export const ADMIN_SCREENS = {
   DASHBOARD: 'dashboard',
@@ -115,17 +100,3 @@ export const LANGUAGE_OPTIONS = [
   { value: LANGUAGES.HINDI, label: 'हिंदी', emoji: '🇮🇳' },
   { value: LANGUAGES.MARATHI, label: 'मराठी', emoji: '🚩' },
 ] as const;
-
-// Demo Users (for development)
-export const DEMO_USERS = {
-  ADMIN: {
-    phone: '9876543210',
-    password: '1234',
-    name: 'Rajesh Kumar',
-  },
-  STUDENT: {
-    phone: '9876543211',
-    password: '1234',
-    name: 'Priya Sharma',
-  },
-} as const;

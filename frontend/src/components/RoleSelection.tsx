@@ -1,8 +1,8 @@
-import { ChefHat, Users, ArrowRight } from 'lucide-react';
+import { ChefHat, Users, Shield, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface RoleSelectionProps {
-  onSelectRole: (role: 'manager' | 'member') => void;
+  onSelectRole: (role: 'admin' | 'manager' | 'member') => void;
 }
 
 export function RoleSelection({ onSelectRole }: RoleSelectionProps) {
@@ -73,6 +73,38 @@ export function RoleSelection({ onSelectRole }: RoleSelectionProps) {
             </h2>
             
             <div className="space-y-4">
+              {/* Platform Admin Button */}
+              <motion.button
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => onSelectRole('admin')}
+                className="w-full p-5 rounded-2xl transition-all relative overflow-hidden group"
+                style={{ 
+                  background: 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)',
+                  boxShadow: '0 8px 20px rgba(99, 102, 241, 0.3)',
+                }}
+              >
+                {/* Shine effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                
+                <div className="relative flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.2)' }}>
+                      <Shield className="w-7 h-7 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <h3 className="text-white" style={{ fontSize: '1.25rem', fontWeight: '700' }}>
+                        Platform Admin
+                      </h3>
+                      <p className="text-white/90" style={{ fontSize: '0.875rem', fontWeight: '500' }}>
+                        प्लेटफार्म प्रशासक
+                      </p>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-6 h-6 text-white group-hover:translate-x-1 transition-transform" />
+                </div>
+              </motion.button>
+
               {/* Mess Manager Button */}
               <motion.button
                 whileHover={{ scale: 1.02, y: -2 }}
@@ -149,34 +181,6 @@ export function RoleSelection({ onSelectRole }: RoleSelectionProps) {
             </motion.p>
           </motion.div>
 
-          {/* Demo Credentials Info */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="mt-4 rounded-2xl p-4"
-            style={{ 
-              background: 'rgba(255, 255, 255, 0.15)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)'
-            }}
-          >
-            <div className="text-white/90 text-center">
-              <p style={{ fontSize: '0.8125rem', fontWeight: '600', marginBottom: '8px' }}>
-                🎯 Try with demo accounts
-              </p>
-              <div className="space-y-2">
-                <div style={{ fontSize: '0.75rem', lineHeight: '1.4' }}>
-                  <p><strong>Manager:</strong> 9876543210</p>
-                  <p><strong>Member:</strong> 9876543211 or 9876543212</p>
-                </div>
-                <p style={{ fontSize: '0.7rem', opacity: 0.8 }}>
-                  OTP: Any 6 digits
-                </p>
-              </div>
-            </div>
-          </motion.div>
-
           {/* Footer */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -185,7 +189,7 @@ export function RoleSelection({ onSelectRole }: RoleSelectionProps) {
             className="text-center mt-6"
           >
             <p className="text-white/80" style={{ fontSize: '0.875rem' }}>
-              Made with ❤️ for college students
+              Made with ❤️ for college students<br/>By Yashraj221B
             </p>
           </motion.div>
         </div>

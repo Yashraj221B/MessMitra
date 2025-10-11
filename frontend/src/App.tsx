@@ -1,4 +1,3 @@
-import { MobileContainer } from './components/MobileContainer';
 import { AppRouter } from './router';
 import { Toaster } from './components/ui/sonner';
 import { LanguageProvider } from './contexts/LanguageContext';
@@ -8,10 +7,8 @@ export default function App() {
   return (
     <ErrorBoundary>
       <LanguageProvider role={null}>
-        <MobileContainer>
-          <AppRouter />
-          <Toaster />
-        </MobileContainer>
+        <AppRouter />
+        <Toaster />
       </LanguageProvider>
     </ErrorBoundary>
   );

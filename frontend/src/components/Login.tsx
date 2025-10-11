@@ -2,125 +2,111 @@ import { useState } from 'react';
 import { ArrowLeft, Phone, Lock, Sparkles, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
+import { authService } from '../services';
 
 interface LoginProps {
-  role: 'manager' | 'member';
+  role: 'admin' | 'manager' | 'member';
   onBack: () => void;
-  onLoginSuccess: (isExistingUser: boolean) => void;
+  onLoginSuccess: () => void;
 }
 
 export function Login({ role, onBack, onLoginSuccess }: LoginProps) {
   const [step, setStep] = useState<'phone' | 'password'>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [password, setPassword] = useState('1234');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [phoneError, setPhoneError] = useState('');
 
   const handlePhoneSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (phoneNumber.length === 0) {
+      setPhoneError('Please enter your phone number');
+      return;
+    }
+    
+    if (phoneNumber.length < 10) {
+      setPhoneError(`Phone number is incomplete. Need ${10 - phoneNumber.length} more digit${10 - phoneNumber.length > 1 ? 's' : ''}`);
+      return;
+    }
+    
     if (phoneNumber.length !== 10) {
-      toast.error('Please enter a valid 10-digit phone number');
+      setPhoneError('Please enter a valid 10-digit phone number');
       return;
     }
 
     setIsLoading(true);
+    setErrorMessage('');
+    setPhoneError('');
     
-    // Simulate API call to check if user exists
+    // Move to password step
     setTimeout(() => {
-      // Check if user exists in mock database
-      const existingUser = checkUserExists(phoneNumber, role);
-      
       setIsLoading(false);
       setStep('password');
-      
-      if (existingUser) {
-        toast.success(`Welcome back! Enter your password �`);
-      } else {
-        toast.success('Create a new password to continue 🎉');
-      }
-    }, 800);
-  };
-
-  // Mock function to check if user exists in database
-  const checkUserExists = (phone: string, userRole: 'manager' | 'member'): boolean => {
-    try {
-      const usersData = localStorage.getItem('messmitra-users-db');
-      if (!usersData) return false;
-      
-      const users = JSON.parse(usersData);
-      return users.some((user: any) => user.phone === phone && user.role === userRole);
-    } catch (error) {
-      console.error('Error checking user:', error);
-      return false;
-    }
-  };
-
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+    }, 500);
+  };  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (password.length < 4) {
-      toast.error('Password must be at least 4 characters');
+    if (password.length === 0) {
+      setErrorMessage('Please enter your password');
+      return;
+    }
+    
+    if (password.length < 6) {
+      setErrorMessage(`Password too short. Need ${6 - password.length} more character${6 - password.length > 1 ? 's' : ''}`);
       return;
     }
 
     setIsLoading(true);
+    setErrorMessage('');
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Try login
+      const loginResult = await authService.login({
+        phone: phoneNumber,
+        password: password,
+        role: role
+      });
+
+      if (loginResult.success && loginResult.user) {
+        // Store user data in localStorage
+        localStorage.setItem('current-user', JSON.stringify(loginResult.user));
+        
+        // Removed annoying "Welcome back" toast - user can see they're logged in
+        setIsLoading(false);
+        onLoginSuccess(); // User exists and logged in successfully
+      } else {
+        setIsLoading(false);
+        setErrorMessage('Login failed. Please try again.');
+      }
+    } catch (loginError: any) {
+      // Show appropriate error message based on status code
+      console.error('Login error:', loginError);
       setIsLoading(false);
       
-      // Check if user exists in database
-      const isExistingUser = checkUserExists(phoneNumber, role);
-      
-      if (isExistingUser) {
-        // Load existing user data and verify password
-        const usersData = localStorage.getItem('messmitra-users-db');
-        if (usersData) {
-          const users = JSON.parse(usersData);
-          const existingUser = users.find((user: any) => user.phone === phoneNumber && user.role === role);
-          
-          if (existingUser) {
-            // In production, you'd verify password hash here
-            // For now, we'll accept any password for existing users or check if password matches
-            if (existingUser.password && existingUser.password !== password) {
-              toast.error('Incorrect password. Please try again.');
-              setPassword('');
-              return;
-            }
-            
-            // Set current user data
-            localStorage.setItem('current-user', JSON.stringify(existingUser));
-            toast.success(`Welcome back, ${existingUser.name}! 👋`);
-            onLoginSuccess(true);
-          }
-        }
+      if (loginError.response?.status === 404) {
+        setErrorMessage('Account not found. Please contact your admin to create your account.');
+      } else if (loginError.response?.status === 401) {
+        setErrorMessage('Incorrect password. Please double-check and try again.');
+      } else if (loginError.response?.status === 403) {
+        setErrorMessage(loginError.response?.data?.message || 'Account not approved yet. Please wait for approval.');
       } else {
-        // New user - store phone, role, and password
-        const newUser = {
-          phone: phoneNumber,
-          role: role,
-          password: password
-        };
-        
-        // Store in users database
-        try {
-          const usersData = localStorage.getItem('messmitra-users-db');
-          const users = usersData ? JSON.parse(usersData) : [];
-          users.push(newUser);
-          localStorage.setItem('messmitra-users-db', JSON.stringify(users));
-        } catch (error) {
-          console.error('Error saving user:', error);
-        }
-        
-        localStorage.setItem('current-user', JSON.stringify(newUser));
-        toast.success('Welcome to MessMitra! 🎉');
-        onLoginSuccess(false);
+        setErrorMessage(loginError.response?.data?.message || 'Login failed. Please check your credentials.');
       }
-    }, 1000);
+    }
   };
 
   const roleConfig = {
+    admin: {
+      title: 'Platform Admin Login',
+      subtitle: 'प्लेटफार्म प्रशासक लॉगिन',
+      emoji: '🛡️',
+      gradient: 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)',
+      color: '#6366F1',
+      pattern: '⚙️',
+    },
     manager: {
       title: 'Mess Owner Login',
       subtitle: 'मेस मालिक लॉगिन',
@@ -257,21 +243,53 @@ export function Login({ role, onBack, onLoginSuccess }: LoginProps) {
                         autoFocus
                       />
                     </div>
-                    {phoneNumber.length > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="mt-3 px-2 flex items-center justify-between"
-                        style={{ fontSize: '0.875rem' }}
-                      >
-                        <span style={{ color: phoneNumber.length === 10 ? config.color : '#999', fontWeight: '600' }}>
-                          {phoneNumber.length === 10 ? '✓ Valid number' : `${phoneNumber.length}/10 digits`}
-                        </span>
-                        {phoneNumber.length === 10 && (
-                          <CheckCircle2 className="w-4 h-4" style={{ color: config.color }} />
-                        )}
-                      </motion.div>
-                    )}
+                    {/* Phone Validation Messages */}
+                    <AnimatePresence mode="wait">
+                      {phoneError ? (
+                        <motion.div
+                          key="phone-error"
+                          initial={{ opacity: 0, y: -5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -5 }}
+                          className="mt-3 px-4 py-3 rounded-xl"
+                          style={{ 
+                            background: 'linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%)',
+                            border: '1.5px solid #FCA5A5',
+                            boxShadow: '0 2px 8px rgba(239, 68, 68, 0.1)'
+                          }}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: '#FCA5A5' }}>
+                              <span style={{ fontSize: '0.7rem' }}>✕</span>
+                            </div>
+                            <span style={{ 
+                              fontSize: '0.875rem', 
+                              color: '#991B1B', 
+                              fontWeight: '600',
+                              lineHeight: '1.4'
+                            }}>
+                              {phoneError}
+                            </span>
+                          </div>
+                        </motion.div>
+                      ) : phoneNumber.length > 0 && (
+                        <motion.div
+                          key="phone-validation"
+                          initial={{ opacity: 0, y: -5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -5 }}
+                          className="mt-3 px-2 flex items-center justify-between"
+                          style={{ fontSize: '0.875rem' }}
+                        >
+                          <span style={{ color: phoneNumber.length === 10 ? config.color : '#999', fontWeight: '600' }}>
+                            {phoneNumber.length === 10 ? '✓ Valid number' : `${phoneNumber.length}/10 digits`}
+                          </span>
+                          {phoneNumber.length === 10 && (
+                            <CheckCircle2 className="w-4 h-4" style={{ color: config.color }} />
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   <button
@@ -330,7 +348,7 @@ export function Login({ role, onBack, onLoginSuccess }: LoginProps) {
                     <Lock className="w-10 h-10 text-white" />
                   </motion.div>
                   <h2 className="mb-2" style={{ fontSize: '1.75rem', fontWeight: '800', color: '#1C4532' }}>
-                    {checkUserExists(phoneNumber, role) ? 'Enter Password' : 'Create Password'}
+                    Enter Password
                   </h2>
                   <p className="mb-3" style={{ fontSize: '1rem', color: '#666', fontWeight: '500' }}>
                     For <span style={{ color: config.color, fontWeight: '700' }}>+91 {phoneNumber}</span>
@@ -357,10 +375,10 @@ export function Login({ role, onBack, onLoginSuccess }: LoginProps) {
                         placeholder="Enter your password"
                         className="w-full px-5 pr-14 py-4 rounded-2xl border-2 transition-all focus:outline-none shadow-sm"
                         style={{
-                          borderColor: password.length >= 4 ? config.color : '#E0E0E0',
+                          borderColor: password.length >= 6 ? config.color : '#E0E0E0',
                           fontSize: '1.125rem',
                           fontWeight: '600',
-                          background: password.length >= 4 ? config.color + '08' : '#F8F9FA',
+                          background: password.length >= 6 ? config.color + '08' : '#F8F9FA',
                         }}
                         autoFocus
                       />
@@ -373,54 +391,86 @@ export function Login({ role, onBack, onLoginSuccess }: LoginProps) {
                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
-                    {password.length > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="mt-3 px-2"
-                        style={{ fontSize: '0.875rem' }}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <div 
-                            className="w-2 h-2 rounded-full"
-                            style={{ background: password.length >= 4 ? config.color : '#CCC' }}
-                          />
-                          <span style={{ color: password.length >= 4 ? config.color : '#999', fontWeight: '600' }}>
-                            {password.length >= 4 ? '✓ Minimum 4 characters' : 'At least 4 characters'}
-                          </span>
-                        </div>
-                      </motion.div>
-                    )}
+                    {/* Password Validation and Error Messages */}
+                    <AnimatePresence mode="wait">
+                      {errorMessage ? (
+                        <motion.div
+                          key="password-error"
+                          initial={{ opacity: 0, y: -5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -5 }}
+                          className="mt-3 px-4 py-3 rounded-xl"
+                          style={{ 
+                            background: 'linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%)',
+                            border: '1.5px solid #FCA5A5',
+                            boxShadow: '0 2px 8px rgba(239, 68, 68, 0.1)'
+                          }}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: '#FCA5A5' }}>
+                              <span style={{ fontSize: '0.7rem' }}>✕</span>
+                            </div>
+                            <span style={{ 
+                              fontSize: '0.875rem', 
+                              color: '#991B1B', 
+                              fontWeight: '600',
+                              lineHeight: '1.4'
+                            }}>
+                              {errorMessage}
+                            </span>
+                          </div>
+                        </motion.div>
+                      ) : password.length > 0 && (
+                        <motion.div
+                          key="password-validation"
+                          initial={{ opacity: 0, y: -5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -5 }}
+                          className="mt-3 px-2"
+                          style={{ fontSize: '0.875rem' }}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <div 
+                              className="w-2 h-2 rounded-full"
+                              style={{ background: password.length >= 6 ? config.color : '#CCC' }}
+                            />
+                            <span style={{ color: password.length >= 6 ? config.color : '#999', fontWeight: '600' }}>
+                              {password.length >= 6 ? '✓ Minimum 6 characters' : `${password.length}/6 characters minimum`}
+                            </span>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   <button
                     type="submit"
-                    disabled={password.length < 4 || isLoading}
+                    disabled={password.length < 6 || isLoading}
                     className="w-full py-4 rounded-2xl text-white transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
                     style={{
-                      background: password.length >= 4 ? config.gradient : '#CCC',
+                      background: password.length >= 6 ? config.gradient : '#CCC',
                       fontWeight: '700',
                       fontSize: '1.125rem',
                     }}
                   >
-                    {password.length >= 4 && (
+                    {password.length >= 6 && (
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                     )}
                     {isLoading ? (
                       <div className="flex items-center justify-center gap-2">
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Verifying...
+                        Connecting...
                       </div>
                     ) : (
                       <span className="flex items-center justify-center gap-2">
-                        {checkUserExists(phoneNumber, role) ? 'Login' : 'Create Account'} <CheckCircle2 className="w-5 h-5" />
+                        Continue <CheckCircle2 className="w-5 h-5" />
                       </span>
                     )}
                   </button>
                 </form>
 
                 <div className="mt-6 text-center" style={{ color: '#666', fontSize: '0.8125rem' }}>
-                  <p>� Your password is encrypted and secure</p>
+                  <p>🔒 Your password is encrypted and secure</p>
                 </div>
               </div>
             </motion.div>

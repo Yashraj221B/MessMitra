@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { BottomNav } from '../BottomNav';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { BilingualText } from '../../BilingualText';
+import { userService, messService } from '../../../services';
 
 interface NotificationsProps {
   currentScreen: string;
@@ -41,59 +42,90 @@ export function Notifications({ currentScreen, onNavigate, onBack }: Notificatio
   const [activeTab, setActiveTab] = useState<'join' | 'leave'>('join');
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
+  const [messId, setMessId] = useState('');
 
   useEffect(() => {
-    // Load join requests
-    const storedJoinRequests = JSON.parse(localStorage.getItem('join-requests') || '[]');
-    setJoinRequests(storedJoinRequests);
-
-    // Load leave requests
-    const storedLeaveRequests = JSON.parse(localStorage.getItem('leave-requests') || '[]');
-    setLeaveRequests(storedLeaveRequests);
+    loadNotifications();
   }, []);
 
-  const handleApproveJoin = (id: string) => {
-    const updatedRequests = joinRequests.map(req =>
-      req.id === id ? { ...req, status: 'approved' as const } : req
-    );
-    setJoinRequests(updatedRequests);
-    localStorage.setItem('join-requests', JSON.stringify(updatedRequests));
-    
-    const request = joinRequests.find(r => r.id === id);
-    toast.success(`${request?.name} को approve कर दिया गया! ✅`);
+  const loadNotifications = async () => {
+    try {
+      // Get user profile to get messId
+      const profile = await userService.getProfile();
+      if (!profile.messId) {
+        toast.error('No mess found for this account');
+        return;
+      }
+
+      setMessId(profile.messId);
+
+      // Load join requests (mess members with pending status)
+      const members = await messService.getMessMembers(profile.messId);
+      const joinReqs: JoinRequest[] = members.map((member: any) => ({
+        id: member.id,
+        name: member.user?.name || 'Unknown',
+        phone: member.user?.phone || '',
+        email: member.user?.email || '',
+        room: member.room || '',
+        requestDate: member.joinedAt || new Date().toISOString(),
+        status: member.status as 'pending' | 'approved' | 'rejected',
+        messId: profile.messId!
+      }));
+      setJoinRequests(joinReqs);
+
+      // Leave requests would come from a separate API (not implemented yet)
+      // For now, keep empty array
+      setLeaveRequests([]);
+    } catch (error: any) {
+      console.error('Error loading notifications:', error);
+      toast.error(error.response?.data?.message || 'Failed to load notifications');
+    }
   };
 
-  const handleRejectJoin = (id: string) => {
-    const updatedRequests = joinRequests.map(req =>
-      req.id === id ? { ...req, status: 'rejected' as const } : req
-    );
-    setJoinRequests(updatedRequests);
-    localStorage.setItem('join-requests', JSON.stringify(updatedRequests));
+  const handleApproveJoin = async (id: string) => {
+    if (!messId) return;
     
-    const request = joinRequests.find(r => r.id === id);
-    toast.error(`${request?.name} का request reject कर दिया गया`);
+    try {
+      const request = joinRequests.find(r => r.id === id);
+      await messService.updateJoinRequest(messId, id, 'active');
+      
+      const updatedRequests = joinRequests.map(req =>
+        req.id === id ? { ...req, status: 'approved' as const } : req
+      );
+      setJoinRequests(updatedRequests);
+      toast.success(`${request?.name} को approve कर दिया गया! ✅`);
+    } catch (error: any) {
+      console.error('Error approving join request:', error);
+      toast.error(error.response?.data?.message || 'Failed to approve request');
+    }
   };
 
-  const handleApproveLeave = (id: string) => {
-    const updatedRequests = leaveRequests.map(req =>
-      req.id === id ? { ...req, status: 'approved' as const } : req
-    );
-    setLeaveRequests(updatedRequests);
-    localStorage.setItem('leave-requests', JSON.stringify(updatedRequests));
+  const handleRejectJoin = async (id: string) => {
+    if (!messId) return;
     
-    const request = leaveRequests.find(r => r.id === id);
-    toast.success(`${request?.studentName} की छुट्टी approve की गई! ✅`);
+    try {
+      const request = joinRequests.find(r => r.id === id);
+      await messService.updateJoinRequest(messId, id, 'rejected');
+      
+      const updatedRequests = joinRequests.map(req =>
+        req.id === id ? { ...req, status: 'rejected' as const } : req
+      );
+      setJoinRequests(updatedRequests);
+      toast.error(`${request?.name} का request reject कर दिया गया`);
+    } catch (error: any) {
+      console.error('Error rejecting join request:', error);
+      toast.error(error.response?.data?.message || 'Failed to reject request');
+    }
   };
 
-  const handleRejectLeave = (id: string) => {
-    const updatedRequests = leaveRequests.map(req =>
-      req.id === id ? { ...req, status: 'rejected' as const } : req
-    );
-    setLeaveRequests(updatedRequests);
-    localStorage.setItem('leave-requests', JSON.stringify(updatedRequests));
-    
-    const request = leaveRequests.find(r => r.id === id);
-    toast.error(`${request?.studentName} की छुट्टी reject की गई`);
+  const handleApproveLeave = async (_id: string) => {
+    // Leave API not implemented yet, show message
+    toast.info('Leave management API coming soon!');
+  };
+
+  const handleRejectLeave = async (_id: string) => {
+    // Leave API not implemented yet, show message
+    toast.info('Leave management API coming soon!');
   };
 
   const pendingJoinCount = joinRequests.filter(r => r.status === 'pending').length;

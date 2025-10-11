@@ -3,5 +3,4 @@
 export { default as validators } from './validators';
 export { default as formatters } from './formatters';
 export { default as errorHandler, AppError } from './errorHandler';
-export * from './mockDatabase';
 export * from './translations';

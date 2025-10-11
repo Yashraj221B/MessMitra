@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, IndianRupee, Check, Search, Download, Send } from 'lucide-react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
@@ -6,6 +6,7 @@ import { BottomNav } from '../BottomNav';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { getTranslation } from '../../../utils/translations';
 import { BilingualText } from '../../BilingualText';
+import { paymentService, userService } from '../../../services';
 
 interface BillingProps {
   currentScreen: string;
@@ -14,51 +15,85 @@ interface BillingProps {
 }
 
 interface Payment {
-  id: number;
+  id: string;
   name: string;
   room: string;
   amount: number;
   paid: boolean;
   dueDate: string;
+  memberId: string;
+  paidAmount: number;
 }
 
 export function Billing({ currentScreen, onNavigate, onBack }: BillingProps) {
   const { language } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'paid' | 'pending'>('all');
-  const [payments, setPayments] = useState<Payment[]>([
-    { id: 1, name: 'Anjali Sharma', room: 'H1-201', amount: 4500, paid: true, dueDate: '2025-10-05' },
-    { id: 2, name: 'Priya Patel', room: 'H1-202', amount: 4500, paid: false, dueDate: '2025-10-05' },
-    { id: 3, name: 'Rahul Kumar', room: 'H2-101', amount: 4500, paid: false, dueDate: '2025-10-05' },
-    { id: 4, name: 'Amit Singh', room: 'H2-102', amount: 4500, paid: true, dueDate: '2025-10-05' },
-    { id: 5, name: 'Sneha Reddy', room: 'H1-203', amount: 4500, paid: true, dueDate: '2025-10-05' },
-    { id: 6, name: 'Vikram Joshi', room: 'H3-301', amount: 4500, paid: false, dueDate: '2025-10-05' },
-    { id: 7, name: 'Neha Gupta', room: 'H3-302', amount: 4500, paid: true, dueDate: '2025-10-05' },
-    { id: 8, name: 'Rohan Verma', room: 'H2-103', amount: 4500, paid: false, dueDate: '2025-10-05' },
-    { id: 9, name: 'Kavya Nair', room: 'H1-204', amount: 4500, paid: false, dueDate: '2025-10-05' },
-    { id: 10, name: 'Arjun Mehta', room: 'H2-104', amount: 4500, paid: true, dueDate: '2025-10-05' },
-  ]);
+  const [payments, setPayments] = useState<Payment[]>([]);
 
-  const togglePaymentStatus = (id: number) => {
-    setPayments(prev =>
-      prev.map(p => p.id === id ? { ...p, paid: !p.paid } : p)
-    );
+  useEffect(() => {
+    loadPayments();
+  }, []);
+
+  const loadPayments = async () => {
+    try {
+      const profile = await userService.getProfile();
+      
+      if (!profile.messId) {
+        toast.error('पहले mess बनाएं!');
+        onBack();
+        return;
+      }
+
+      const messPayments = await paymentService.getMessPayments(profile.messId);
+      
+      const paymentsData: Payment[] = messPayments.map(payment => ({
+        id: payment.id,
+        name: payment.member?.name || payment.member?.phone || 'Unknown',
+        room: payment.member?.room || 'N/A',
+        amount: payment.amount,
+        paid: payment.status === 'paid',
+        dueDate: new Date(payment.dueDate).toLocaleDateString('hi-IN'),
+        memberId: payment.memberId,
+        paidAmount: payment.paidAmount
+      }));
+      
+      setPayments(paymentsData);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to load payments');
+      console.error('Error loading payments:', error);
+    }
+  };
+
+  const togglePaymentStatus = async (id: string) => {
     const payment = payments.find(p => p.id === id);
-    if (payment) {
-      const message = payment.paid 
-        ? (language === 'marathi' ? 'पेमेंट प्रलंबित केले!' : language === 'hindi' ? 'पेमेंट pending में डाला!' : 'Payment marked as pending!')
-        : getTranslation(language, 'paymentUpdated');
-      toast.success(message);
+    if (!payment) return;
+
+    try {
+      if (!payment.paid) {
+        // Mark as paid
+        await paymentService.recordPayment(id, {
+          paidAmount: payment.amount,
+          paymentMethod: 'cash',
+          paidDate: new Date().toISOString()
+        });
+        
+        setPayments(prev =>
+          prev.map(p => p.id === id ? { ...p, paid: true, paidAmount: p.amount } : p)
+        );
+        
+        toast.success(getTranslation(language, 'paymentUpdated'));
+      } else {
+        toast.info('Payment already marked as paid');
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to update payment');
+      console.error('Error updating payment:', error);
     }
   };
 
   const sendReminder = (name: string) => {
-    const message = language === 'marathi' 
-      ? `${name} ला रिमाइंडर पाठव���े! 📱`
-      : language === 'hindi' 
-      ? `${name} को reminder भेज दिया! 📱`
-      : `Reminder sent to ${name}! 📱`;
-    toast.success(message);
+    // Removed success toast - reminder button press is confirmation enough
   };
 
   const filteredPayments = payments

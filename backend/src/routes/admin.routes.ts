@@ -14,16 +14,20 @@ router.get('/stats', adminController.getPlatformStats);
 
 // Mess management
 router.get('/messes', adminController.getAllMesses);
+router.post('/messes', adminController.createMess);
 router.post('/messes/:messId/approve', adminController.approveMess);
 router.post('/messes/:messId/suspend', adminController.suspendMess);
 router.post('/messes/:messId/activate', adminController.activateMess);
 
 // User management
 router.get('/users', adminController.getAllUsers);
+router.post('/users', adminController.createUser);
+router.get('/managers', adminController.getManagers);
 router.get('/users/:userId', adminController.getUserById);
 router.post('/users/:userId/suspend', adminController.suspendUser);
 router.post('/users/:userId/activate', adminController.activateUser);
 router.delete('/users/:userId', adminController.deleteUser);
 router.patch('/users/:userId/role', adminController.changeUserRole);
+router.patch('/users/:userId', adminController.updateUser);
 
 export default router;

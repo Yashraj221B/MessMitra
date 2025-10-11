@@ -3,6 +3,8 @@ import { ArrowLeft, QrCode, Check, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { MemberBottomNav } from './MemberBottomNav';
+import { messService } from '../../services';
+import { QRScanner } from '../QRScanner';
 
 interface JoinMessProps {
   currentScreen: string;
@@ -21,53 +23,87 @@ export function JoinMess({ currentScreen, onNavigate, onBack }: JoinMessProps) {
   const [scanning, setScanning] = useState(false);
   const [scannedMess, setScannedMess] = useState<MessInfo | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [manualMessId, setManualMessId] = useState('');
+  const [showManualInput, setShowManualInput] = useState(false);
 
-  // Mock function to simulate QR scan (in production, use actual camera API)
   const handleScan = () => {
     setScanning(true);
-    
-    // Simulate scanning delay
-    setTimeout(() => {
-      const mockMessData: MessInfo = {
-        messId: 'MESS-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
-        messName: 'Green Valley Mess',
-        ownerName: 'राजेश कुमार',
-        phone: '+91 98765 43210'
-      };
-      
-      setScannedMess(mockMessData);
-      setScanning(false);
-    }, 2000);
   };
 
-  const handleJoinRequest = () => {
+  const handleScanSuccess = async (decodedText: string) => {
+    setScanning(false);
+    
+    try {
+      // Parse QR code data
+      const messData = JSON.parse(decodedText);
+      
+      if (!messData.messId) {
+        toast.error('Invalid QR code. Please try again.');
+        return;
+      }
+
+      // Fetch full mess details
+      const mess = await messService.getMessById(messData.messId);
+      setScannedMess({
+        messId: mess.data.id,
+        messName: mess.data.name,
+        ownerName: mess.data.ownerName || messData.ownerName || 'Mess Owner',
+        phone: mess.data.phone || messData.phone || ''
+      });
+      
+      // Removed success toast - mess details are displayed below, obvious to user
+    } catch (error: any) {
+      console.error('Error processing QR code:', error);
+      toast.error('Invalid QR code or mess not found.');
+      setShowManualInput(true);
+    }
+  };
+
+  const handleScanClose = () => {
+    setScanning(false);
+  };
+
+  const handleManualJoin = async () => {
+    if (!manualMessId.trim()) {
+      toast.error('Please enter a valid Mess ID');
+      return;
+    }
+
+    try {
+      // Fetch mess details first
+      const mess = await messService.getMessById(manualMessId);
+      setScannedMess({
+        messId: mess.data.id,
+        messName: mess.data.name,
+        ownerName: mess.data.ownerName || 'Mess Owner',
+        phone: mess.data.phone || ''
+      });
+      setShowManualInput(false);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Mess not found. Check the ID.');
+      console.error('Error fetching mess:', error);
+    }
+  };
+
+  const handleJoinRequest = async () => {
     if (!scannedMess) return;
 
-    // Create join request
-    const joinRequest = {
-      id: Date.now().toString(),
-      name: 'Anjali Sharma', // In production, get from user profile
-      phone: '+91 98765 12345',
-      email: 'anjali@example.com',
-      room: 'H1-201',
-      requestDate: new Date().toISOString(),
-      status: 'pending',
-      messId: scannedMess.messId
-    };
+    try {
+      // Send join request to backend
+      await messService.joinMess(scannedMess.messId);
 
-    // Save to localStorage (in production, send to backend)
-    const existingRequests = JSON.parse(localStorage.getItem('join-requests') || '[]');
-    existingRequests.push(joinRequest);
-    localStorage.setItem('join-requests', JSON.stringify(existingRequests));
-
-    setShowSuccess(true);
-    
-    setTimeout(() => {
-      toast.success('Request भेज दी गई! Owner approval के बाद आप mess में add हो जाएंगे 🎉');
+      setShowSuccess(true);
+      
       setTimeout(() => {
-        onBack();
-      }, 1000);
-    }, 2000);
+        // Removed success toast - success animation is already showing
+        setTimeout(() => {
+          onBack();
+        }, 1000);
+      }, 2000);
+    } catch (error: any) {
+      console.error('Error sending join request:', error);
+      toast.error(error.response?.data?.message || 'Failed to send join request');
+    }
   };
 
   return (
@@ -101,6 +137,16 @@ export function JoinMess({ currentScreen, onNavigate, onBack }: JoinMessProps) {
           </div>
         </div>
       </div>
+
+      {/* QR Scanner Modal */}
+      {scanning && (
+        <QRScanner
+          onScanSuccess={handleScanSuccess}
+          onClose={handleScanClose}
+          title="Scan Mess QR Code"
+          description="Position the QR code within the frame"
+        />
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 pb-28">
@@ -140,55 +186,94 @@ export function JoinMess({ currentScreen, onNavigate, onBack }: JoinMessProps) {
                   boxShadow: '0 8px 32px rgba(72, 196, 121, 0.15)',
                   border: '3px solid #E8F5E9'
                 }}>
-                  {scanning ? (
-                    <div className="w-3/4 aspect-square rounded-xl flex items-center justify-center relative">
-                      <motion.div
-                        animate={{ 
-                          top: ['10%', '80%', '10%']
-                        }}
-                        transition={{ 
-                          duration: 2, 
-                          repeat: Infinity,
-                          ease: 'linear'
-                        }}
-                        className="absolute left-0 right-0 h-1 bg-green-500"
-                        style={{ boxShadow: '0 0 10px rgba(72, 196, 121, 0.5)' }}
-                      />
-                      <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-green-500 rounded-tl-lg" />
-                      <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-green-500 rounded-tr-lg" />
-                      <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-green-500 rounded-bl-lg" />
-                      <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-green-500 rounded-br-lg" />
-                      <span style={{ fontSize: '0.9rem', color: '#48C479', fontWeight: '600' }}>
-                        Scanning...
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="w-3/4 aspect-square rounded-xl flex items-center justify-center relative" style={{ 
-                      border: '3px dashed #48C479'
-                    }}>
-                      <QrCode className="w-24 h-24" style={{ color: '#48C479' }} />
-                    </div>
-                  )}
+                  <div className="w-3/4 aspect-square rounded-xl flex items-center justify-center relative" style={{ 
+                    border: '3px dashed #48C479'
+                  }}>
+                    <QrCode className="w-24 h-24" style={{ color: '#48C479' }} />
+                  </div>
                 </div>
 
                 <button
                   onClick={handleScan}
-                  disabled={scanning}
                   className="w-full py-4 rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2"
                   style={{ 
-                    background: scanning 
-                      ? 'linear-gradient(135deg, #E0E0E0 0%, #BDBDBD 100%)'
-                      : 'linear-gradient(135deg, #48C479 0%, #23AE5F 100%)',
+                    background: 'linear-gradient(135deg, #48C479 0%, #23AE5F 100%)',
                     color: 'white',
                     fontSize: '1.05rem',
                     fontWeight: '700',
-                    cursor: scanning ? 'not-allowed' : 'pointer',
-                    boxShadow: scanning ? 'none' : '0 4px 12px rgba(72, 196, 121, 0.3)'
+                    boxShadow: '0 4px 12px rgba(72, 196, 121, 0.3)'
                   }}
                 >
                   <QrCode className="w-5 h-5" />
-                  {scanning ? 'Scanning...' : 'Start Scanning'}
+                  Start Scanning
                 </button>
+
+                {/* Or Divider */}
+                {!showManualInput && (
+                  <div className="flex items-center gap-3 my-4">
+                    <div className="flex-1 h-px bg-gray-300" />
+                    <span style={{ fontSize: '0.85rem', color: '#999' }}>या</span>
+                    <div className="flex-1 h-px bg-gray-300" />
+                  </div>
+                )}
+
+                {/* Manual Entry Button */}
+                {!showManualInput && (
+                  <button
+                    onClick={() => setShowManualInput(true)}
+                    className="w-full py-3 rounded-xl active:scale-95 transition-all"
+                    style={{ 
+                      background: 'white',
+                      border: '2px solid #E8F5E9',
+                      color: '#48C479',
+                      fontSize: '0.95rem',
+                      fontWeight: '700'
+                    }}
+                  >
+                    Enter Mess ID Manually
+                  </button>
+                )}
+
+                {/* Manual Entry Option */}
+                {showManualInput && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="mt-4 p-4 rounded-xl"
+                    style={{ 
+                      background: 'white',
+                      border: '2px solid #E8F5E9',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                    }}
+                  >
+                    <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#1C4532', marginBottom: '8px' }}>
+                      📝 Manual Entry
+                    </div>
+                    <input
+                      type="text"
+                      value={manualMessId}
+                      onChange={(e) => setManualMessId(e.target.value)}
+                      placeholder="Enter Mess ID (e.g. MESS-ABC123)"
+                      className="w-full px-4 py-3 rounded-lg mb-3"
+                      style={{ 
+                        border: '2px solid #E8F5E9',
+                        fontSize: '0.95rem'
+                      }}
+                    />
+                    <button
+                      onClick={handleManualJoin}
+                      className="w-full py-3 rounded-lg active:scale-95 transition-all"
+                      style={{ 
+                        background: 'linear-gradient(135deg, #0B8043 0%, #23AE5F 100%)',
+                        color: 'white',
+                        fontSize: '0.95rem',
+                        fontWeight: '700'
+                      }}
+                    >
+                      Join with Mess ID
+                    </button>
+                  </motion.div>
+                )}
               </div>
 
               {/* Info Cards */}

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Star, ChefHat, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { MemberBottomNav } from './MemberBottomNav';
+import { feedbackService, userService } from '../../services';
 
 interface FoodRatingProps {
   currentScreen: string;
@@ -23,15 +24,45 @@ export function FoodRating({ currentScreen, onNavigate, onBack }: FoodRatingProp
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [todayRatings, setTodayRatings] = useState<MealRating[]>([]);
+  const [messId, setMessId] = useState('');
 
-  // Get today's ratings from localStorage
-  const getTodayRatings = (): MealRating[] => {
-    const today = new Date().toDateString();
-    const stored = localStorage.getItem(`ratings-${today}`);
-    return stored ? JSON.parse(stored) : [];
+  // Load today's ratings from backend
+  useEffect(() => {
+    loadTodayRatings();
+  }, []);
+
+  const loadTodayRatings = async () => {
+    try {
+      // Get user profile to get messId
+      const profile = await userService.getProfile();
+      if (!profile.messId) {
+        toast.error('You are not part of any mess yet');
+        return;
+      }
+
+      setMessId(profile.messId);
+
+      // Get today's ratings for the user
+      const ratings = await feedbackService.getMyRatings(profile.messId);
+      
+      // Filter for today's ratings
+      const today = new Date().toDateString();
+      const todaysRatings = ratings.filter((r: any) => 
+        new Date(r.date || r.createdAt).toDateString() === today
+      ).map((r: any) => ({
+        mealType: r.mealType as 'breakfast' | 'lunch' | 'dinner',
+        rating: r.rating,
+        comment: r.comment,
+        timestamp: r.createdAt
+      }));
+
+      setTodayRatings(todaysRatings);
+    } catch (error: any) {
+      console.error('Error loading ratings:', error);
+      // Don't show error toast, just continue with empty ratings
+    }
   };
-
-  const [todayRatings, setTodayRatings] = useState<MealRating[]>(getTodayRatings());
 
   const meals = [
     {
@@ -78,39 +109,48 @@ export function FoodRating({ currentScreen, onNavigate, onBack }: FoodRatingProp
     return todayRatings.some(r => r.mealType === mealType);
   };
 
-  const handleSubmitRating = () => {
+  const handleSubmitRating = async () => {
     if (!selectedMeal || rating === 0) {
       toast.error('कृपया ���ेटिंग दें!');
       return;
     }
 
-    const newRating: MealRating = {
-      mealType: selectedMeal,
-      rating,
-      comment: comment.trim() || undefined,
-      timestamp: new Date().toISOString()
-    };
+    if (!messId) {
+      toast.error('Mess information not found');
+      return;
+    }
 
-    // Save to localStorage (for demo - in production this would go to backend)
-    const today = new Date().toDateString();
-    const updatedRatings = [...todayRatings, newRating];
-    localStorage.setItem(`ratings-${today}`, JSON.stringify(updatedRatings));
-    
-    // Also save to global ratings for admin view
-    const allRatings = JSON.parse(localStorage.getItem('all-ratings') || '[]');
-    allRatings.push(newRating);
-    localStorage.setItem('all-ratings', JSON.stringify(allRatings));
+    try {
+      // Submit rating to backend
+      await feedbackService.submitRating({
+        messId,
+        mealType: selectedMeal,
+        rating,
+        comment: comment.trim() || undefined,
+        date: new Date().toISOString()
+      });
 
-    setTodayRatings(updatedRatings);
-    setShowSuccess(true);
-    
-    setTimeout(() => {
-      setShowSuccess(false);
-      setSelectedMeal(null);
-      setRating(0);
-      setComment('');
-      toast.success('रेटिंग सबमिट हो गई! धन्यवाद 🎉');
-    }, 2000);
+      const newRating: MealRating = {
+        mealType: selectedMeal,
+        rating,
+        comment: comment.trim() || undefined,
+        timestamp: new Date().toISOString()
+      };
+
+      setTodayRatings([...todayRatings, newRating]);
+      setShowSuccess(true);
+      
+      setTimeout(() => {
+        setShowSuccess(false);
+        setSelectedMeal(null);
+        setRating(0);
+        setComment('');
+        toast.success('रेटिंग सबमिट हो गई! धन्यवाद 🎉');
+      }, 2000);
+    } catch (error: any) {
+      console.error('Error submitting rating:', error);
+      toast.error(error.response?.data?.message || 'Failed to submit rating');
+    }
   };
 
   return (

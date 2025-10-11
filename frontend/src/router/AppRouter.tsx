@@ -1,30 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { RoleSelection } from '../components/RoleSelection';
 import { Login } from '../components/Login';
-import { BasicDetails } from '../components/BasicDetails';
-import { ManagerRouter } from './ManagerRouter';
-import { MemberRouter } from './MemberRouter';
-import { initializeMockDatabase } from '../utils/mockDatabase';
+import { MobileContainer } from '../components/MobileContainer';
 import type { Role } from '../types';
 
-export type AppScreen = 'role-selection' | 'login' | 'basic-details' | 'app';
+// Lazy load routers for better performance
+const AdminRouter = lazy(() => import('./AdminRouter').then(m => ({ default: m.AdminRouter })));
+const ManagerRouter = lazy(() => import('./ManagerRouter').then(m => ({ default: m.ManagerRouter })));
+const MemberRouter = lazy(() => import('./MemberRouter').then(m => ({ default: m.MemberRouter })));
+
+export type AppScreen = 'role-selection' | 'login' | 'app';
 
 export function AppRouter() {
   const [screen, setScreen] = useState<AppScreen>('role-selection');
   const [role, setRole] = useState<Role | null>(null);
 
-  // Initialize app and restore session
+  // Initialize app and restore session (using JWT tokens from cookies)
   useEffect(() => {
-    initializeMockDatabase();
-    
-    const savedRole = localStorage.getItem('messmitra-role') as Role;
-    const savedAuth = localStorage.getItem('messmitra-auth') === 'true';
-    const savedBasicDetails = localStorage.getItem('messmitra-basic-details');
-    
-    if (savedRole && savedAuth && savedBasicDetails) {
-      setRole(savedRole);
-      setScreen('app');
-    }
+    // Check if user has valid JWT token in cookies
+    // The backend will validate the token automatically
+    // For now, just start at role selection
+    // TODO: Add auto-login with JWT token validation
   }, []);
 
   // Handle role selection
@@ -41,38 +37,24 @@ export function AppRouter() {
   };
 
   // Handle successful login
-  const handleLoginSuccess = (isExistingUser: boolean) => {
+  const handleLoginSuccess = () => {
     if (role) {
       localStorage.setItem('messmitra-role', role);
       localStorage.setItem('messmitra-auth', 'true');
     }
     
-    // If existing user with complete profile, go to app
-    if (isExistingUser) {
-      const currentUser = localStorage.getItem('current-user');
-      if (currentUser) {
-        const userData = JSON.parse(currentUser);
-        if (userData.name) {
-          localStorage.setItem('messmitra-basic-details', JSON.stringify(userData));
-          setScreen('app');
-          return;
-        }
+    // Store user data as basic details (admin has already provided everything)
+    try {
+      const currentUserStr = localStorage.getItem('current-user');
+      if (currentUserStr) {
+        const userData = JSON.parse(currentUserStr);
+        localStorage.setItem('messmitra-basic-details', JSON.stringify(userData));
       }
+    } catch (error) {
+      console.error('Error parsing user data:', error);
     }
     
-    // New user or incomplete profile, go to basic details
-    setScreen('basic-details');
-  };
-
-  // Handle basic details completion
-  const handleBasicDetailsComplete = (details: any) => {
-    const currentUser = localStorage.getItem('current-user');
-    if (currentUser) {
-      const userData = JSON.parse(currentUser);
-      const completeData = { ...userData, ...details };
-      localStorage.setItem('current-user', JSON.stringify(completeData));
-    }
-    localStorage.setItem('messmitra-basic-details', JSON.stringify(details));
+    // All users go directly to app (admin has created all accounts with complete details)
     setScreen('app');
   };
 
@@ -92,44 +74,58 @@ export function AppRouter() {
     if (screen === 'login') {
       setScreen('role-selection');
       setRole(null);
-    } else if (screen === 'basic-details') {
-      setScreen('login');
       localStorage.removeItem('messmitra-auth');
       localStorage.removeItem('current-user');
     }
   };
 
   // Render appropriate screen
-  switch (screen) {
-    case 'role-selection':
-      return <RoleSelection onSelectRole={handleRoleSelect} />;
-    
-    case 'login':
-      return (
-        <Login
-          role={role!}
-          onBack={handleBack}
-          onLoginSuccess={handleLoginSuccess}
-        />
-      );
-    
-    case 'basic-details':
-      return (
-        <BasicDetails
-          role={role!}
-          onBack={handleBack}
-          onComplete={handleBasicDetailsComplete}
-        />
-      );
-    
-    case 'app':
-      return role === 'manager' ? (
-        <ManagerRouter onLogout={handleLogout} />
-      ) : (
-        <MemberRouter onLogout={handleLogout} />
-      );
-    
-    default:
-      return null;
+  // Admin gets full-width desktop layout, others get mobile container
+  const content = (() => {
+    switch (screen) {
+      case 'role-selection':
+        return <RoleSelection onSelectRole={handleRoleSelect} />;
+      
+      case 'login':
+        return (
+          <Login
+            role={role!}
+            onBack={handleBack}
+            onLoginSuccess={handleLoginSuccess}
+          />
+        );
+      
+      case 'app':
+        return (
+          <Suspense fallback={
+            <div className="flex items-center justify-center min-h-screen bg-slate-100">
+              <div className="text-center">
+                <div className="animate-spin w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p className="text-gray-600 font-semibold text-lg">Loading dashboard...</p>
+                <p className="text-gray-500 text-sm mt-2">Please wait while we prepare your workspace</p>
+              </div>
+            </div>
+          }>
+            {role === 'admin' ? (
+              // Admin gets full desktop layout - NO mobile container
+              <AdminRouter onLogout={handleLogout} />
+            ) : role === 'manager' ? (
+              <ManagerRouter onLogout={handleLogout} />
+            ) : (
+              <MemberRouter onLogout={handleLogout} />
+            )}
+          </Suspense>
+        );
+      
+      default:
+        return null;
+    }
+  })();
+
+  // Wrap non-admin screens in mobile container
+  if (screen === 'app' && role === 'admin') {
+    return content;
   }
+
+  return <MobileContainer>{content}</MobileContainer>;
 }

@@ -1,96 +1,130 @@
-// API endpoint constants (for future backend integration)
+// API endpoint constants
 
-const API_VERSION = '/api/v1';
+const API_VERSION = '/api';
 
 export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
+    REGISTER: `${API_VERSION}/auth/register`,
     LOGIN: `${API_VERSION}/auth/login`,
     LOGOUT: `${API_VERSION}/auth/logout`,
-    VERIFY_OTP: `${API_VERSION}/auth/verify-otp`,
     REFRESH_TOKEN: `${API_VERSION}/auth/refresh`,
-    CHANGE_PASSWORD: `${API_VERSION}/auth/change-password`,
   },
 
   // User Management
   USERS: {
     GET_PROFILE: `${API_VERSION}/users/profile`,
     UPDATE_PROFILE: `${API_VERSION}/users/profile`,
+    CHANGE_PASSWORD: `${API_VERSION}/users/password`,
     GET_ALL: `${API_VERSION}/users`,
-    GET_BY_ID: (id: string) => `${API_VERSION}/users/${id}`,
-    UPDATE: (id: string) => `${API_VERSION}/users/${id}`,
-    DELETE: (id: string) => `${API_VERSION}/users/${id}`,
+  },
+
+  // Mess Management
+  MESS: {
+    CREATE: `${API_VERSION}/messes`,
+    GET_ALL: `${API_VERSION}/messes`,
+    GET_BY_ID: (messId: string) => `${API_VERSION}/messes/${messId}`,
+    UPDATE: (messId: string) => `${API_VERSION}/messes/${messId}`,
+    DELETE: (messId: string) => `${API_VERSION}/messes/${messId}`,
+    REQUEST_JOIN: `${API_VERSION}/messes/join`,
+    REGENERATE_QR: (messId: string) => `${API_VERSION}/messes/${messId}/qr-code`,
+    GET_MEMBERS: (messId: string) => `${API_VERSION}/messes/${messId}/members`,
+    UPDATE_MEMBER_STATUS: (messId: string, memberId: string) => `${API_VERSION}/messes/${messId}/members/${memberId}/status`,
   },
 
   // Menu Management
   MENU: {
-    GET_ALL: `${API_VERSION}/menu`,
-    GET_BY_DATE: (date: string) => `${API_VERSION}/menu/${date}`,
-    CREATE: `${API_VERSION}/menu`,
-    UPDATE: (id: string) => `${API_VERSION}/menu/${id}`,
-    DELETE: (id: string) => `${API_VERSION}/menu/${id}`,
-    COPY: `${API_VERSION}/menu/copy`,
+    CREATE: (messId: string) => `${API_VERSION}/menus/${messId}`,
+    GET_BY_ID: (menuId: string) => `${API_VERSION}/menus/${menuId}`,
+    GET_BY_DATE: (messId: string) => `${API_VERSION}/menus/${messId}/date`,
+    GET_WEEKLY: (messId: string) => `${API_VERSION}/menus/${messId}/weekly`,
+    GET_MONTHLY: (messId: string) => `${API_VERSION}/menus/${messId}/monthly`,
+    UPDATE: (menuId: string) => `${API_VERSION}/menus/${menuId}`,
+    DELETE: (menuId: string) => `${API_VERSION}/menus/${menuId}`,
   },
 
   // Attendance
   ATTENDANCE: {
-    GET_ALL: `${API_VERSION}/attendance`,
-    GET_BY_DATE: (date: string) => `${API_VERSION}/attendance/${date}`,
-    MARK: `${API_VERSION}/attendance/mark`,
-    SCAN_QR: `${API_VERSION}/attendance/scan`,
-    GET_STATS: `${API_VERSION}/attendance/stats`,
+    MARK: `${API_VERSION}/attendance`,
+    GET_BY_ID: (attendanceId: string) => `${API_VERSION}/attendance/${attendanceId}`,
+    GET_REPORT: (messId: string) => `${API_VERSION}/attendance/mess/${messId}/report`,
+    GET_MEMBER_ATTENDANCE: (messId: string, memberId: string) => `${API_VERSION}/attendance/mess/${messId}/member/${memberId}`,
+    GET_STATS: (messId: string) => `${API_VERSION}/attendance/mess/${messId}/stats`,
   },
 
   // Leave Management
   LEAVE: {
-    GET_ALL: `${API_VERSION}/leave`,
-    GET_BY_ID: (id: string) => `${API_VERSION}/leave/${id}`,
-    CREATE: `${API_VERSION}/leave`,
-    UPDATE: (id: string) => `${API_VERSION}/leave/${id}`,
-    APPROVE: (id: string) => `${API_VERSION}/leave/${id}/approve`,
-    REJECT: (id: string) => `${API_VERSION}/leave/${id}/reject`,
-    DELETE: (id: string) => `${API_VERSION}/leave/${id}`,
+    CREATE: (messId: string) => `${API_VERSION}/leaves/${messId}`,
+    GET_MY_LEAVES: `${API_VERSION}/leaves/my-leaves`,
+    GET_BY_ID: (leaveId: string) => `${API_VERSION}/leaves/${leaveId}`,
+    GET_MESS_LEAVES: (messId: string) => `${API_VERSION}/leaves/${messId}/all`,
+    GET_STATS: (messId: string) => `${API_VERSION}/leaves/${messId}/stats`,
+    GET_MEMBER_LEAVES: (memberId: string) => `${API_VERSION}/leaves/member/${memberId}`,
+    UPDATE_STATUS: (leaveId: string) => `${API_VERSION}/leaves/${leaveId}/status`,
+    CANCEL: (leaveId: string) => `${API_VERSION}/leaves/${leaveId}/cancel`,
   },
 
   // Payments
   PAYMENTS: {
-    GET_ALL: `${API_VERSION}/payments`,
-    GET_BY_ID: (id: string) => `${API_VERSION}/payments/${id}`,
     CREATE: `${API_VERSION}/payments`,
-    UPDATE: (id: string) => `${API_VERSION}/payments/${id}`,
-    MARK_PAID: (id: string) => `${API_VERSION}/payments/${id}/mark-paid`,
-    SEND_REMINDER: (id: string) => `${API_VERSION}/payments/${id}/reminder`,
+    RECORD_PAYMENT: (paymentId: string) => `${API_VERSION}/payments/${paymentId}/record`,
+    GET_BY_ID: (paymentId: string) => `${API_VERSION}/payments/${paymentId}`,
+    GET_MESS_PAYMENTS: (messId: string) => `${API_VERSION}/payments/mess/${messId}`,
+    GET_OVERDUE: (messId: string) => `${API_VERSION}/payments/mess/${messId}/overdue`,
+    GET_STATS: (messId: string) => `${API_VERSION}/payments/mess/${messId}/stats`,
+    GET_MEMBER_PAYMENTS: (memberId: string) => `${API_VERSION}/payments/member/${memberId}`,
   },
 
   // Announcements
   ANNOUNCEMENTS: {
-    GET_ALL: `${API_VERSION}/announcements`,
     CREATE: `${API_VERSION}/announcements`,
-    UPDATE: (id: string) => `${API_VERSION}/announcements/${id}`,
-    DELETE: (id: string) => `${API_VERSION}/announcements/${id}`,
+    GET_BY_ID: (announcementId: string) => `${API_VERSION}/announcements/${announcementId}`,
+    GET_MESS_ANNOUNCEMENTS: (messId: string) => `${API_VERSION}/announcements/mess/${messId}`,
+    UPDATE: (announcementId: string) => `${API_VERSION}/announcements/${announcementId}`,
+    DELETE: (announcementId: string) => `${API_VERSION}/announcements/${announcementId}`,
   },
 
   // Feedback & Ratings
   FEEDBACK: {
-    GET_ALL: `${API_VERSION}/feedback`,
     CREATE: `${API_VERSION}/feedback`,
-    GET_STATS: `${API_VERSION}/feedback/stats`,
+    GET_BY_ID: (feedbackId: string) => `${API_VERSION}/feedback/${feedbackId}`,
+    GET_MY_FEEDBACK: `${API_VERSION}/feedback/my-feedback`,
+    GET_MESS_FEEDBACK: (messId: string) => `${API_VERSION}/feedback/mess/${messId}`,
+    GET_STATS: (messId: string) => `${API_VERSION}/feedback/mess/${messId}/stats`,
+    GET_FOOD_RATINGS: (messId: string) => `${API_VERSION}/feedback/mess/${messId}/food-ratings`,
   },
 
   // Notifications
   NOTIFICATIONS: {
-    GET_ALL: `${API_VERSION}/notifications`,
-    MARK_READ: (id: string) => `${API_VERSION}/notifications/${id}/read`,
+    GET_USER_NOTIFICATIONS: `${API_VERSION}/notifications`,
+    GET_UNREAD_COUNT: `${API_VERSION}/notifications/unread-count`,
+    MARK_READ: (notificationId: string) => `${API_VERSION}/notifications/${notificationId}/read`,
     MARK_ALL_READ: `${API_VERSION}/notifications/read-all`,
-    DELETE: (id: string) => `${API_VERSION}/notifications/${id}`,
+    DELETE: (notificationId: string) => `${API_VERSION}/notifications/${notificationId}`,
   },
 
-  // Reports
-  REPORTS: {
-    DASHBOARD: `${API_VERSION}/reports/dashboard`,
-    ATTENDANCE: `${API_VERSION}/reports/attendance`,
-    PAYMENTS: `${API_VERSION}/reports/payments`,
-    EXPORT: `${API_VERSION}/reports/export`,
+  // Admin Management
+  ADMIN: {
+    // Statistics
+    GET_STATS: `${API_VERSION}/admin/stats`,
+    
+    // Mess Management
+    GET_MESSES: `${API_VERSION}/admin/messes`,
+    CREATE_MESS: `${API_VERSION}/admin/messes`,
+    APPROVE_MESS: (messId: string) => `${API_VERSION}/admin/messes/${messId}/approve`,
+    SUSPEND_MESS: (messId: string) => `${API_VERSION}/admin/messes/${messId}/suspend`,
+    ACTIVATE_MESS: (messId: string) => `${API_VERSION}/admin/messes/${messId}/activate`,
+    
+    // User Management
+    GET_USERS: `${API_VERSION}/admin/users`,
+    GET_MANAGERS: `${API_VERSION}/admin/managers`,
+    CREATE_USER: `${API_VERSION}/admin/users`,
+    GET_USER_BY_ID: (userId: string) => `${API_VERSION}/admin/users/${userId}`,
+    UPDATE_USER: (userId: string) => `${API_VERSION}/admin/users/${userId}`,
+    DELETE_USER: (userId: string) => `${API_VERSION}/admin/users/${userId}`,
+    SUSPEND_USER: (userId: string) => `${API_VERSION}/admin/users/${userId}/suspend`,
+    ACTIVATE_USER: (userId: string) => `${API_VERSION}/admin/users/${userId}/activate`,
+    CHANGE_USER_ROLE: (userId: string) => `${API_VERSION}/admin/users/${userId}/role`,
   },
 } as const;
 

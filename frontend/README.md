@@ -102,7 +102,7 @@ src/
 ## 🔐 Demo Credentials
 
 ### Admin
-- Phone: 9876543210
+- Phone: 8446150310
 - Password: 1234
 
 ### Student

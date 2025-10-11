@@ -6,9 +6,9 @@ import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
 import { toast } from 'sonner';
-import { updateUser } from '../../utils/mockDatabase';
 import { getTranslation } from '../../utils/translations';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { userService, messService } from '../../services';
 
 interface AdminProfileProps {
   currentScreen: string;
@@ -20,78 +20,78 @@ interface AdminProfileProps {
 export function AdminProfile({ onBack, onLogout }: AdminProfileProps) {
   const { language, setLanguage } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [name, setName] = useState('');
   const [messName, setMessName] = useState('');
+  const [messId, setMessId] = useState('');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
   const [notifications, setNotifications] = useState(true);
   const [showLanguageDialog, setShowLanguageDialog] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
+  // Load user data from backend
   useEffect(() => {
-    try {
-      const currentUser = localStorage.getItem('current-user');
-      if (currentUser) {
-        const data = JSON.parse(currentUser);
-        setName(data.name || '');
-        setMessName(data.messName || '');
-        setAddress(data.address || '');
-        setPhone(data.phone || '');
-      }
-      
-      // Load notification preference
-      const savedNotifications = localStorage.getItem('messmitra-notifications');
-      setNotifications(savedNotifications !== 'false');
-    } catch (error) {
-      console.error('Error loading user data:', error);
-    }
+    loadProfileData();
   }, []);
 
-  const handleSave = () => {
+  const loadProfileData = async () => {
+    setIsLoading(true);
     try {
-      const currentUser = localStorage.getItem('current-user');
-      if (currentUser) {
-        const data = JSON.parse(currentUser);
-        const updatedData = {
-          ...data,
-          name,
-          messName,
-          address
-        };
-        
-        // Update in localStorage
-        localStorage.setItem('current-user', JSON.stringify(updatedData));
-        localStorage.setItem('messmitra-basic-details', JSON.stringify({
-          name,
-          messName,
-          address
-        }));
-        
-        // Update in database
-        updateUser(data.phone, 'manager', { name, messName, address });
-        
-        toast.success(getTranslation(language, 'profileUpdated'));
-        setIsEditing(false);
+      // Get user profile
+      const profile = await userService.getProfile();
+      setName(profile.name || '');
+      setPhone(profile.phone || '');
+
+      // Get mess details if user is a manager
+      if (profile.messId) {
+        const messResponse = await messService.getMessById(profile.messId);
+        setMessId(profile.messId);
+        setMessName(messResponse.name || '');
+        setAddress(messResponse.address || '');
       }
-    } catch (error) {
-      console.error('Error saving user data:', error);
-      toast.error('Failed to save profile');
+
+      // Load notification preference from localStorage (this is UI preference, not data)
+      const savedNotifications = localStorage.getItem('messmitra-notifications');
+      setNotifications(savedNotifications !== 'false');
+    } catch (error: any) {
+      console.error('Error loading profile:', error);
+      toast.error(error.response?.data?.message || 'Failed to load profile');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setIsLoading(true);
+    try {
+      // Update user profile
+      await userService.updateProfile({ name });
+      
+      // Update mess details if exists
+      if (messId) {
+        await messService.updateMess(messId, {
+          name: messName,
+          address
+        });
+      }
+      
+      // Removed success toast - form closes and updated data is displayed
+      setIsEditing(false);
+      
+      // Reload data to ensure we have the latest
+      await loadProfileData();
+    } catch (error: any) {
+      console.error('Error saving profile:', error);
+      toast.error(error.response?.data?.message || 'Failed to save profile');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleCancel = () => {
-    // Reload original data
-    try {
-      const currentUser = localStorage.getItem('current-user');
-      if (currentUser) {
-        const data = JSON.parse(currentUser);
-        setName(data.name || '');
-        setMessName(data.messName || '');
-        setAddress(data.address || '');
-      }
-    } catch (error) {
-      console.error('Error reloading user data:', error);
-    }
+    // Reload original data from backend
+    loadProfileData();
     setIsEditing(false);
   };
 
@@ -182,12 +182,34 @@ export function AdminProfile({ onBack, onLogout }: AdminProfileProps) {
           transition={{ delay: 0.1 }}
           className="space-y-4"
         >
-          {/* Name */}
-          <div className="p-4 rounded-2xl" style={{ background: 'white', border: '1.5px solid #E5E7EB' }}>
-            <Label style={{ fontSize: '0.8125rem', fontWeight: '600', color: '#6B7280', marginBottom: '8px', display: 'block' }}>
-              👤 {getTranslation(language, 'yourName')}
-            </Label>
-            {isEditing ? (
+          {isLoading ? (
+            // Loading skeletons
+            <>
+              <div className="p-4 rounded-2xl" style={{ background: 'white', border: '1.5px solid #E5E7EB' }}>
+                <div className="h-4 w-20 bg-gray-200 rounded animate-pulse mb-3" />
+                <div className="h-6 w-full bg-gray-200 rounded animate-pulse" />
+              </div>
+              <div className="p-4 rounded-2xl" style={{ background: 'white', border: '1.5px solid #E5E7EB' }}>
+                <div className="h-4 w-24 bg-gray-200 rounded animate-pulse mb-3" />
+                <div className="h-6 w-full bg-gray-200 rounded animate-pulse" />
+              </div>
+              <div className="p-4 rounded-2xl" style={{ background: 'white', border: '1.5px solid #E5E7EB' }}>
+                <div className="h-4 w-20 bg-gray-200 rounded animate-pulse mb-3" />
+                <div className="h-20 w-full bg-gray-200 rounded animate-pulse" />
+              </div>
+              <div className="p-4 rounded-2xl" style={{ background: '#F9FAFB', border: '1.5px solid #E5E7EB' }}>
+                <div className="h-4 w-28 bg-gray-200 rounded animate-pulse mb-3" />
+                <div className="h-6 w-32 bg-gray-200 rounded animate-pulse" />
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Name */}
+              <div className="p-4 rounded-2xl" style={{ background: 'white', border: '1.5px solid #E5E7EB' }}>
+                <Label style={{ fontSize: '0.8125rem', fontWeight: '600', color: '#6B7280', marginBottom: '8px', display: 'block' }}>
+                  👤 {getTranslation(language, 'yourName')}
+                </Label>
+                {isEditing ? (
               <Input
                 type="text"
                 value={name}
@@ -262,6 +284,8 @@ export function AdminProfile({ onBack, onLogout }: AdminProfileProps) {
               Phone number cannot be changed
             </p>
           </div>
+            </>
+          )}
         </motion.div>
 
         {/* Settings Section */}

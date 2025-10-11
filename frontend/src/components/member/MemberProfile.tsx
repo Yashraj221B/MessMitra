@@ -5,7 +5,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
 import { toast } from 'sonner';
-import { updateUser } from '../../utils/mockDatabase';
+import { userService } from '../../services';
 
 interface MemberProfileProps {
   currentScreen: string;
@@ -23,65 +23,39 @@ export function MemberProfile({ onBack, onLogout }: MemberProfileProps) {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   useEffect(() => {
-    try {
-      const currentUser = localStorage.getItem('current-user');
-      if (currentUser) {
-        const data = JSON.parse(currentUser);
-        setName(data.name || '');
-        setRoom(data.room || '');
-        setMemberId(data.memberId || data.studentId || '');
-        setPhone(data.phone || '');
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error);
-    }
+    loadProfile();
   }, []);
 
-  const handleSave = () => {
+  const loadProfile = async () => {
     try {
-      const currentUser = localStorage.getItem('current-user');
-      if (currentUser) {
-        const data = JSON.parse(currentUser);
-        const updatedData = {
-          ...data,
-          name,
-          room,
-          memberId
-        };
-        
-        // Update in localStorage
-        localStorage.setItem('current-user', JSON.stringify(updatedData));
-        localStorage.setItem('messmitra-basic-details', JSON.stringify({
-          name,
-          room,
-          memberId
-        }));
-        
-        // Update in database
-        updateUser(data.phone, 'member', { name, room, memberId });
-        
-        toast.success('Profile updated successfully! ✅');
-        setIsEditing(false);
-      }
-    } catch (error) {
-      console.error('Error saving user data:', error);
-      toast.error('Failed to save profile');
+      const profile = await userService.getProfile();
+      setName(profile.name || '');
+      setPhone(profile.phone || '');
+      setMemberId(profile.id || '');
+      setRoom(''); // TODO: Add room field to user profile in backend
+    } catch (error: any) {
+      console.error('Error loading profile:', error);
+      toast.error(error.response?.data?.message || 'Failed to load profile');
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      // TODO: Add room field to backend user profile model
+      await userService.updateProfile({ name });
+      
+      // Removed success toast - form closes and shows updated name
+      setIsEditing(false);
+      await loadProfile(); // Reload to get fresh data
+    } catch (error: any) {
+      console.error('Error saving profile:', error);
+      toast.error(error.response?.data?.message || 'Failed to save profile');
     }
   };
 
   const handleCancel = () => {
-    // Reload original data
-    try {
-      const currentUser = localStorage.getItem('current-user');
-      if (currentUser) {
-        const data = JSON.parse(currentUser);
-        setName(data.name || '');
-        setRoom(data.room || '');
-        setMemberId(data.memberId || data.studentId || '');
-      }
-    } catch (error) {
-      console.error('Error reloading user data:', error);
-    }
+    // Reload original data from backend
+    loadProfile();
     setIsEditing(false);
   };
 

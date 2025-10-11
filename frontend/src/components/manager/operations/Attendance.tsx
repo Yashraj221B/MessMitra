@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, QrCode, UserCheck, UserX, Search, Barcode, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
@@ -6,6 +6,8 @@ import { BottomNav } from '../BottomNav';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { getTranslation } from '../../../utils/translations';
 import { BilingualText } from '../../BilingualText';
+import { messService, userService, attendanceService } from '../../../services';
+import { QRScanner } from '../../QRScanner';
 
 interface AttendanceProps {
   currentScreen: string;
@@ -14,7 +16,7 @@ interface AttendanceProps {
 }
 
 interface Student {
-  id: number;
+  id: string;
   name: string;
   room: string;
   present: boolean;
@@ -24,33 +26,125 @@ export function Attendance({ currentScreen, onNavigate, onBack }: AttendanceProp
   const { language } = useLanguage();
   const [scanMode, setScanMode] = useState<'manual' | 'qr' | 'barcode'>('manual');
   const [searchQuery, setSearchQuery] = useState('');
-  const [students, setStudents] = useState<Student[]>([
-    { id: 1, name: 'Anjali Sharma', room: 'H1-201', present: true },
-    { id: 2, name: 'Priya Patel', room: 'H1-202', present: true },
-    { id: 3, name: 'Rahul Kumar', room: 'H2-101', present: false },
-    { id: 4, name: 'Amit Singh', room: 'H2-102', present: true },
-    { id: 5, name: 'Sneha Reddy', room: 'H1-203', present: true },
-    { id: 6, name: 'Vikram Joshi', room: 'H3-301', present: false },
-    { id: 7, name: 'Neha Gupta', room: 'H3-302', present: true },
-    { id: 8, name: 'Rohan Verma', room: 'H2-103', present: true },
-    { id: 9, name: 'Kavya Nair', room: 'H1-204', present: false },
-    { id: 10, name: 'Arjun Mehta', room: 'H2-104', present: true },
-  ]);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [messId, setMessId] = useState<string>('');
+  const [showQRScanner, setShowQRScanner] = useState(false);
 
-  const toggleAttendance = (id: number) => {
+  useEffect(() => {
+    loadMembers();
+  }, []);
+
+  const loadMembers = async () => {
+    try {
+      const profile = await userService.getProfile();
+      
+      if (!profile.messId) {
+        toast.error('पहले mess बनाएं!');
+        onBack();
+        return;
+      }
+
+      setMessId(profile.messId);
+      
+      const members = await messService.getMessMembers(profile.messId);
+      const activeMembers = members.filter(m => m.status === 'active');
+      
+      // Get today's attendance
+      const todayAttendance = await attendanceService.getTodayAttendance(profile.messId);
+      
+      const studentsData: Student[] = activeMembers.map(member => ({
+        id: member.userId,
+        name: member.user.name || member.user.phone,
+        room: 'N/A', // TODO: Add room field to user profile
+        present: todayAttendance.some(a => a.memberId === member.userId && a.status === 'present')
+      }));
+      
+      setStudents(studentsData);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to load members');
+      console.error('Error loading members:', error);
+    }
+  };
+
+  const toggleAttendance = (id: string) => {
     setStudents(prev =>
       prev.map(s => s.id === id ? { ...s, present: !s.present } : s)
     );
   };
 
-  const saveAttendance = () => {
-    const presentCount = students.filter(s => s.present).length;
-    const message = language === 'marathi'
-      ? `हजेरी सेव्ह झाली! ${presentCount} उपस्थित 🎉`
-      : language === 'hindi'
-      ? `हाज़िरी सेव हो गई! ${presentCount} उपस्थित 🎉`
-      : `Attendance saved! ${presentCount} present 🎉`;
-    toast.success(message);
+  const handleQRScanSuccess = async (decodedText: string) => {
+    setShowQRScanner(false);
+    
+    try {
+      // Parse QR code data - expected format: {"userId": "...", "name": "...", "phone": "..."}
+      const userData = JSON.parse(decodedText);
+      
+      if (!userData.userId) {
+        toast.error('Invalid QR code');
+        return;
+      }
+
+      // Find student in list
+      const student = students.find(s => s.id === userData.userId);
+      
+      if (!student) {
+        toast.error('Student not found in mess');
+        return;
+      }
+
+      // Mark attendance via API
+      const today = new Date().toISOString().split('T')[0];
+      await attendanceService.markAttendance({
+        messId,
+        memberId: userData.userId,
+        date: today,
+        mealType: 'lunch',
+        scanMethod: 'qr',
+        status: 'present'
+      });
+
+      // Update UI
+      toggleAttendance(userData.userId);
+      
+      // Removed success toast - attendance checkbox already shows the change
+    } catch (error: any) {
+      console.error('Error processing QR code:', error);
+      toast.error('Invalid QR code or failed to mark attendance');
+    }
+  };
+
+  const handleQRScanClose = () => {
+    setShowQRScanner(false);
+  };
+
+  const saveAttendance = async () => {
+    if (!messId) return;
+    
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Mark attendance for all present students
+      const attendancePromises = students
+        .filter(s => s.present)
+        .map(s => 
+          attendanceService.markAttendance({
+            messId,
+            memberId: s.id,
+            date: today,
+            mealType: 'lunch', // Default to lunch, can be made dynamic
+            scanMethod: 'manual',
+            status: 'present'
+          })
+        );
+      
+      await Promise.all(attendancePromises);
+      
+      const presentCount = students.filter(s => s.present).length;
+      // Removed success toast - attendance checkmarks are visible in UI
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to save attendance');
+      console.error('Error saving attendance:', error);
+    }
   };
 
   const filteredStudents = students.filter(s => 
@@ -63,6 +157,16 @@ export function Attendance({ currentScreen, onNavigate, onBack }: AttendanceProp
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(180deg, #F1F8F4 0%, #FFFFFF 100%)' }}>
+      {/* QR Scanner Modal */}
+      {showQRScanner && (
+        <QRScanner
+          onScanSuccess={handleQRScanSuccess}
+          onClose={handleQRScanClose}
+          title="Scan Student QR Code"
+          description="विद्यार्थी का QR code स्कैन करें"
+        />
+      )}
+
       {/* Modern Header */}
       <div className="px-4 pt-4 pb-4" style={{ 
         background: 'linear-gradient(135deg, #0B8043 0%, #23AE5F 100%)',
@@ -137,7 +241,10 @@ export function Attendance({ currentScreen, onNavigate, onBack }: AttendanceProp
             मैन्युअल
           </button>
           <button
-            onClick={() => setScanMode('qr')}
+            onClick={() => {
+              setScanMode('qr');
+              setShowQRScanner(true);
+            }}
             className="py-2.5 px-3 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-1.5"
             style={{ 
               background: scanMode === 'qr' ? 'linear-gradient(135deg, #0B8043 0%, #23AE5F 100%)' : 'transparent',
@@ -196,10 +303,26 @@ export function Attendance({ currentScreen, onNavigate, onBack }: AttendanceProp
                 <h3 style={{ fontSize: '1.15rem', fontWeight: '700', color: '#1C4532', marginBottom: '0.5rem' }}>
                   QR Code स्कैन करें
                 </h3>
-                <p style={{ fontSize: '0.875rem', color: '#666' }}>
+                <p style={{ fontSize: '0.875rem', color: '#666', marginBottom: '1.5rem' }}>
                   विद्यार्थी का QR code कैमरे के सामने रखें
                 </p>
-                <div className="mt-6 p-4 rounded-xl" style={{ 
+                
+                <button
+                  onClick={() => setShowQRScanner(true)}
+                  className="w-full py-4 rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2 mb-4"
+                  style={{ 
+                    background: 'linear-gradient(135deg, #0B8043 0%, #23AE5F 100%)',
+                    color: 'white',
+                    fontSize: '1.05rem',
+                    fontWeight: '700',
+                    boxShadow: '0 4px 12px rgba(11, 128, 67, 0.3)'
+                  }}
+                >
+                  <QrCode className="w-5 h-5" />
+                  Start Camera Scanner
+                </button>
+
+                <div className="mt-2 p-4 rounded-xl" style={{ 
                   background: 'linear-gradient(135deg, #FFF9E6 0%, #FFF3D6 100%)',
                   border: '1.5px solid #FFE082'
                 }}>

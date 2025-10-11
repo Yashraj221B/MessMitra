@@ -1,8 +1,10 @@
-import { useState } from 'react';
-import { ArrowLeft, QrCode, Download, Share2, Sparkles } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, Download, Share2, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
+import QRCode from 'react-qr-code';
 import { MemberBottomNav } from './MemberBottomNav';
+import { userService } from '../../services';
 
 interface QRCodeScreenProps {
   currentScreen: string;
@@ -12,13 +14,128 @@ interface QRCodeScreenProps {
 
 export function QRCodeScreen({ currentScreen, onNavigate, onBack }: QRCodeScreenProps) {
   const [brightness, setBrightness] = useState(100);
+  const [isLoading, setIsLoading] = useState(true);
+  const [userData, setUserData] = useState({
+    id: '',
+    name: 'Loading...',
+    phone: '',
+    messId: ''
+  });
 
-  const handleDownload = () => {
-    toast.success('QR Code डाउनलोड हो रहा है! 📥');
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      setIsLoading(true);
+      const profile = await userService.getProfile();
+      setUserData({
+        id: profile.id,
+        name: profile.name || profile.phone,
+        phone: profile.phone,
+        messId: profile.messId || 'Not joined yet'
+      });
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to load profile');
+      console.error('Error loading profile:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleShare = () => {
-    toast.success('QR Code शेयर हो रहा है! 📤');
+  const handleDownload = () => {
+    try {
+      const svg = document.querySelector('#member-qr-code svg');
+      if (!svg) {
+        toast.error('QR Code not found');
+        return;
+      }
+
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx!.fillStyle = 'white';
+        ctx!.fillRect(0, 0, canvas.width, canvas.height);
+        ctx!.drawImage(img, 0, 0);
+        
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${userData.name}-QR-Code.png`;
+            a.click();
+            URL.revokeObjectURL(url);
+            // Removed success toast - browser download notification handles this
+          }
+        });
+      };
+
+      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download QR code');
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      const svg = document.querySelector('#member-qr-code svg');
+      if (!svg) {
+        toast.error('QR Code not found');
+        return;
+      }
+
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+
+      img.onload = async () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx!.fillStyle = 'white';
+        ctx!.fillRect(0, 0, canvas.width, canvas.height);
+        ctx!.drawImage(img, 0, 0);
+        
+        canvas.toBlob(async (blob) => {
+          if (blob) {
+            const file = new File([blob], `${userData.name}-QR.png`, { type: 'image/png' });
+            
+            if (navigator.share && navigator.canShare({ files: [file] })) {
+              try {
+                await navigator.share({
+                  files: [file],
+                  title: 'My Mess QR Code',
+                  text: `${userData.name}'s Mess QR Code`
+                });
+                // Removed success toast - system share dialog is feedback
+              } catch (err: any) {
+                if (err.name !== 'AbortError') {
+                  console.error('Share error:', err);
+                  toast.error('Failed to share');
+                }
+              }
+            } else {
+              // Fallback: copy to clipboard
+              toast.info('Sharing not supported. Downloading instead...');
+              handleDownload();
+            }
+          }
+        });
+      };
+
+      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+    } catch (error) {
+      console.error('Share error:', error);
+      toast.error('Failed to share QR code');
+    }
   };
 
   return (
@@ -60,7 +177,7 @@ export function QRCodeScreen({ currentScreen, onNavigate, onBack }: QRCodeScreen
           animate={{ opacity: 1, scale: 1 }}
           className="w-full max-w-sm"
         >
-          {/* Student Info Card */}
+          {/* Student Info Card - Real Data */}
           <div className="mb-6 p-4 rounded-2xl text-center" style={{ 
             background: 'linear-gradient(135deg, #48C479 0%, #23AE5F 100%)',
             boxShadow: '0 8px 24px rgba(72, 196, 121, 0.3)'
@@ -73,13 +190,13 @@ export function QRCodeScreen({ currentScreen, onNavigate, onBack }: QRCodeScreen
               <span style={{ fontSize: '2rem' }}>🎓</span>
             </div>
             <div className="text-white" style={{ fontSize: '1.3rem', fontWeight: '700', marginBottom: '4px' }}>
-              Anjali Sharma
+              {isLoading ? 'Loading...' : userData.name}
             </div>
             <div className="text-white/90" style={{ fontSize: '0.9rem', marginBottom: '2px' }}>
-              Room H1-201
+              {userData.phone}
             </div>
             <div className="text-white/80" style={{ fontSize: '0.85rem' }}>
-              Student ID: MS2025001
+              User ID: {userData.id || '---'}
             </div>
           </div>
 
@@ -99,26 +216,34 @@ export function QRCodeScreen({ currentScreen, onNavigate, onBack }: QRCodeScreen
               <div className="absolute bottom-2 left-2 w-8 h-8 border-b-4 border-l-4 rounded-bl-xl" style={{ borderColor: '#48C479' }} />
               <div className="absolute bottom-2 right-2 w-8 h-8 border-b-4 border-r-4 rounded-br-xl" style={{ borderColor: '#48C479' }} />
 
-              {/* QR Code Placeholder */}
+              {/* QR Code - Real Scannable */}
               <div 
-                className="aspect-square w-64 rounded-xl flex items-center justify-center relative"
+                id="member-qr-code"
+                className="aspect-square w-64 rounded-xl flex items-center justify-center p-4 bg-white"
                 style={{ 
-                  background: `linear-gradient(135deg, #F1F8F4 0%, #E8F5E9 100%)`,
                   filter: `brightness(${brightness}%)`
                 }}
               >
-                <QrCode className="w-48 h-48" style={{ color: '#1C4532' }} />
-                
-                {/* Center logo */}
-                <div 
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-lg flex items-center justify-center"
-                  style={{ 
-                    background: 'linear-gradient(135deg, #48C479 0%, #23AE5F 100%)',
-                    boxShadow: '0 2px 8px rgba(72, 196, 121, 0.4)'
-                  }}
-                >
-                  <span style={{ fontSize: '1.5rem' }}>🍽️</span>
-                </div>
+                {!isLoading && userData.id ? (
+                  <QRCode
+                    value={JSON.stringify({
+                      userId: userData.id,
+                      name: userData.name,
+                      phone: userData.phone,
+                      messId: userData.messId,
+                      type: 'member'
+                    })}
+                    size={220}
+                    level="H"
+                    fgColor="#1C4532"
+                    bgColor="#FFFFFF"
+                  />
+                ) : (
+                  <div className="text-center">
+                    <div className="animate-spin w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full mx-auto mb-2" />
+                    <p style={{ fontSize: '0.85rem', color: '#666' }}>Loading QR...</p>
+                  </div>
+                )}
               </div>
             </div>
 

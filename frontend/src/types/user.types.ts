@@ -1,6 +1,6 @@
 // User-related type definitions
 
-export type Role = 'manager' | 'member';
+export type Role = 'admin' | 'manager' | 'member';
 
 export interface BaseUser {
   phone: string;

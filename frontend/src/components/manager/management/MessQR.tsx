@@ -3,6 +3,8 @@ import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { BottomNav } from '../BottomNav';
 import QRCode from 'react-qr-code';
+import { useState, useEffect } from 'react';
+import { userService, messService } from '../../../services';
 
 interface MessQRProps {
   currentScreen: string;
@@ -11,13 +13,42 @@ interface MessQRProps {
 }
 
 export function MessQR({ currentScreen, onNavigate, onBack }: MessQRProps) {
-  // Generate unique mess ID (in production, this would come from backend)
-  const messId = 'MESS-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-  const messData = {
-    messId,
-    messName: 'Green Valley Mess',
-    ownerName: 'राजेश कुमार',
-    phone: '+91 98765 43210'
+  const [isLoading, setIsLoading] = useState(true);
+  const [messData, setMessData] = useState({
+    messId: '',
+    messName: 'Loading...',
+    ownerName: 'Loading...',
+    phone: ''
+  });
+
+  useEffect(() => {
+    loadMessData();
+  }, []);
+
+  const loadMessData = async () => {
+    try {
+      setIsLoading(true);
+      const profile = await userService.getProfile();
+      
+      if (!profile.messId) {
+        toast.error('पहले mess बनाएं!');
+        onBack();
+        return;
+      }
+
+      const mess = await messService.getMessById(profile.messId);
+      setMessData({
+        messId: mess.id,
+        messName: mess.name,
+        ownerName: profile.name || 'Mess Owner',
+        phone: profile.phone
+      });
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to load mess data');
+      console.error('Error loading mess:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleShare = async () => {
@@ -25,7 +56,7 @@ export function MessQR({ currentScreen, onNavigate, onBack }: MessQRProps) {
       try {
         await navigator.share({
           title: 'Join Our Mess',
-          text: `Scan this QR code to join ${messData.messName}!\nMess ID: ${messId}`,
+          text: `Scan this QR code to join ${messData.messName}!\nMess ID: ${messData.messId}`,
         });
         toast.success('शेयर किया गया!');
       } catch (error) {
@@ -33,14 +64,40 @@ export function MessQR({ currentScreen, onNavigate, onBack }: MessQRProps) {
       }
     } else {
       // Fallback for browsers that don't support share
-      navigator.clipboard.writeText(`Mess ID: ${messId}`);
+      navigator.clipboard.writeText(`Mess ID: ${messData.messId}`);
       toast.success('Mess ID कॉपी हो गया!');
     }
   };
 
   const handleDownload = () => {
-    // In a real app, this would generate and download a QR code image
-    toast.success('QR Code डाउनलोड हो रहा है...');
+    const svg = document.querySelector('#mess-qr-code');
+    if (svg) {
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx?.drawImage(img, 0, 0);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${messData.messName}-QR.png`;
+            a.click();
+            URL.revokeObjectURL(url);
+            toast.success('QR Code downloaded!');
+          }
+        });
+      };
+      
+      img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+    } else {
+      toast.error('Failed to download QR code');
+    }
   };
 
   return (
@@ -134,6 +191,7 @@ export function MessQR({ currentScreen, onNavigate, onBack }: MessQRProps) {
                 border: '2px solid #E8F5E9'
               }}>
                 <QRCode 
+                  id="mess-qr-code"
                   value={JSON.stringify(messData)} 
                   size={220}
                   level="H"
@@ -156,7 +214,7 @@ export function MessQR({ currentScreen, onNavigate, onBack }: MessQRProps) {
                     letterSpacing: '0.1em'
                   }}
                 >
-                  {messId}
+                  {isLoading ? 'Loading...' : messData.messId}
                 </div>
               </div>
 

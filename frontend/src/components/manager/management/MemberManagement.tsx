@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Search, UserPlus, Phone, Home, Calendar, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BottomNav } from '../BottomNav';
+import { messService, userService } from '../../../services';
+import { toast } from 'sonner';
 
 interface MemberManagementProps {
   currentScreen: string;
@@ -10,7 +12,7 @@ interface MemberManagementProps {
 }
 
 interface Member {
-  id: number;
+  id: string;
   name: string;
   room: string;
   phone: string;
@@ -22,14 +24,41 @@ interface Member {
 export function MemberManagement({ currentScreen, onNavigate, onBack }: MemberManagementProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
-  const [members] = useState<Member[]>([
-    { id: 1, name: 'Anjali Sharma', room: 'H1-201', phone: '+91 98765 43210', joinDate: 'Jan 2025', paymentStatus: 'paid', attendance: 95 },
-    { id: 2, name: 'Priya Patel', room: 'H1-202', phone: '+91 98765 43211', joinDate: 'Jan 2025', paymentStatus: 'pending', attendance: 88 },
-    { id: 3, name: 'Rahul Kumar', room: 'H2-101', phone: '+91 98765 43212', joinDate: 'Feb 2025', paymentStatus: 'pending', attendance: 92 },
-    { id: 4, name: 'Amit Singh', room: 'H2-102', phone: '+91 98765 43213', joinDate: 'Jan 2025', paymentStatus: 'paid', attendance: 97 },
-    { id: 5, name: 'Sneha Reddy', room: 'H1-203', phone: '+91 98765 43214', joinDate: 'Mar 2025', paymentStatus: 'paid', attendance: 90 },
-    { id: 6, name: 'Vikram Joshi', room: 'H3-301', phone: '+91 98765 43215', joinDate: 'Feb 2025', paymentStatus: 'pending', attendance: 85 },
-  ]);
+  const [members, setMembers] = useState<Member[]>([]);
+
+  useEffect(() => {
+    loadMembers();
+  }, []);
+
+  const loadMembers = async () => {
+    try {
+      const profile = await userService.getProfile();
+      
+      if (!profile.messId) {
+        toast.error('पहले mess बनाएं!');
+        onBack();
+        return;
+      }
+
+      const messMembers = await messService.getMessMembers(profile.messId);
+      const activeMembers = messMembers.filter(m => m.status === 'active');
+      
+      const membersData: Member[] = activeMembers.map(member => ({
+        id: member.userId,
+        name: member.user.name || member.user.phone,
+        room: 'N/A', // TODO: Add room field
+        phone: member.user.phone,
+        joinDate: new Date(member.joinedAt).toLocaleDateString('hi-IN'),
+        paymentStatus: 'pending', // TODO: Get from payment service
+        attendance: 85 // TODO: Get from attendance service
+      }));
+      
+      setMembers(membersData);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to load members');
+      console.error('Error loading members:', error);
+    }
+  };
 
   const filteredMembers = members.filter(m => 
     m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

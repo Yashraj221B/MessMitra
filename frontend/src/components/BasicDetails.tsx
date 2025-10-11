@@ -3,9 +3,11 @@ import { motion } from 'motion/react';
 import { ArrowLeft, ArrowRight, User, Building2, Home, IdCard, ChefHat, GraduationCap } from 'lucide-react';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { userService, messService } from '../services';
+import { toast } from 'sonner';
 
 interface BasicDetailsProps {
-  role: 'manager' | 'member';
+  role: 'admin' | 'manager' | 'member';
   onBack: () => void;
   onComplete: (details: ManagerDetails | MemberDetails) => void;
 }
@@ -14,6 +16,7 @@ interface ManagerDetails {
   name: string;
   messName: string;
   address: string;
+  monthlyFee: number;
 }
 
 interface MemberDetails {
@@ -27,55 +30,82 @@ export function BasicDetails({ role, onBack, onComplete }: BasicDetailsProps) {
   const [managerName, setManagerName] = useState('');
   const [messName, setMessName] = useState('');
   const [address, setAddress] = useState('');
+  const [monthlyFee, setMonthlyFee] = useState('');
 
   // Member fields
   const [memberName, setMemberName] = useState('');
   const [room, setRoom] = useState('');
   const [memberId, setMemberId] = useState('');
+  
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (role === 'manager') {
-      if (managerName.trim() && messName.trim() && address.trim()) {
-        const details = { name: managerName, messName, address };
-        saveUserToDatabase(details);
-        onComplete(details);
+      if (managerName.trim() && messName.trim() && address.trim() && monthlyFee) {
+        await saveManagerDetails({
+          name: managerName,
+          messName,
+          address,
+          monthlyFee: parseFloat(monthlyFee)
+        });
       }
     } else {
       if (memberName.trim() && room.trim() && memberId.trim()) {
-        const details = { name: memberName, room, memberId };
-        saveUserToDatabase(details);
-        onComplete(details);
+        await saveMemberDetails({
+          name: memberName,
+          room,
+          memberId
+        });
       }
     }
   };
 
-  const saveUserToDatabase = (details: ManagerDetails | MemberDetails) => {
+  const saveManagerDetails = async (details: ManagerDetails) => {
+    setIsLoading(true);
     try {
-      // Get current user data (which has phone and role)
-      const currentUserData = localStorage.getItem('current-user');
-      if (!currentUserData) return;
+      // Update user profile with name
+      await userService.updateProfile({ name: details.name });
       
-      const currentUser = JSON.parse(currentUserData);
-      const completeUserData = { ...currentUser, ...details };
+      // Create mess
+      await messService.createMess({
+        name: details.messName,
+        address: details.address,
+        monthlyFee: details.monthlyFee
+      });
       
-      // Get existing users database
-      const usersData = localStorage.getItem('messmitra-users-db');
-      const users = usersData ? JSON.parse(usersData) : [];
+      toast.success('Mess created successfully! 🎉');
+      onComplete(details);
+    } catch (error: any) {
+      console.error('Error saving manager details:', error);
+      toast.error(error.response?.data?.message || 'Failed to save details. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const saveMemberDetails = async (details: MemberDetails) => {
+    setIsLoading(true);
+    try {
+      // Update user profile with name and member details
+      await userService.updateProfile({
+        name: details.name,
+        // Store room and memberId in profile (backend should support these fields)
+      });
       
-      // Add new user to database
-      users.push(completeUserData);
-      localStorage.setItem('messmitra-users-db', JSON.stringify(users));
-      
-      console.log('User saved to database:', completeUserData);
-    } catch (error) {
-      console.error('Error saving user to database:', error);
+      toast.success('Profile updated successfully! 🎉');
+      onComplete(details);
+    } catch (error: any) {
+      console.error('Error saving member details:', error);
+      toast.error(error.response?.data?.message || 'Failed to save details. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const isValid = role === 'manager' 
-    ? managerName.trim() && messName.trim() && address.trim()
+    ? managerName.trim() && messName.trim() && address.trim() && monthlyFee.trim()
     : memberName.trim() && room.trim() && memberId.trim();
 
   return (
@@ -243,6 +273,35 @@ export function BasicDetails({ role, onBack, onComplete }: BasicDetailsProps) {
                   />
                 </div>
               </div>
+
+              {/* Monthly Fee */}
+              <div>
+                <Label 
+                  htmlFor="monthlyFee"
+                  style={{ fontSize: '0.9375rem', fontWeight: '600', color: '#1A1F36', marginBottom: '8px', display: 'block' }}
+                >
+                  Monthly Fee • मासिक शुल्क
+                </Label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                    <span style={{ color: '#6B7280', fontSize: '1.25rem', fontWeight: '600' }}>₹</span>
+                  </div>
+                  <Input
+                    id="monthlyFee"
+                    type="number"
+                    placeholder="e.g., 3000"
+                    value={monthlyFee}
+                    onChange={(e) => setMonthlyFee(e.target.value)}
+                    className="pl-12 h-14 rounded-2xl border-2"
+                    style={{ 
+                      background: 'white',
+                      borderColor: '#E5E7EB',
+                      fontSize: '1rem'
+                    }}
+                    min="0"
+                  />
+                </div>
+              </div>
             </>
           ) : (
             <>
@@ -378,17 +437,26 @@ export function BasicDetails({ role, onBack, onComplete }: BasicDetailsProps) {
         <button
           type="submit"
           onClick={handleSubmit}
-          disabled={!isValid}
+          disabled={!isValid || isLoading}
           className="w-full h-14 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ 
-            background: isValid ? 'linear-gradient(135deg, #0B8043 0%, #48C479 100%)' : '#E5E7EB',
+            background: isValid && !isLoading ? 'linear-gradient(135deg, #0B8043 0%, #48C479 100%)' : '#E5E7EB',
             color: 'white',
             fontWeight: '700',
             fontSize: '1rem'
           }}
         >
-          <span>Continue</span>
-          <ArrowRight className="w-5 h-5" />
+          {isLoading ? (
+            <>
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span>Saving...</span>
+            </>
+          ) : (
+            <>
+              <span>Continue</span>
+              <ArrowRight className="w-5 h-5" />
+            </>
+          )}
         </button>
         <p className="text-center mt-3" style={{ fontSize: '0.8125rem', color: '#6B7280' }}>
           Almost there! Setting up your account...

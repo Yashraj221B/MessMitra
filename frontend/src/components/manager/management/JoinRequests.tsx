@@ -3,6 +3,7 @@ import { ArrowLeft, UserPlus, Check, X, Phone, Calendar, Mail } from 'lucide-rea
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { BottomNav } from '../BottomNav';
+import { userService, messService } from '../../../services';
 
 interface JoinRequestsProps {
   currentScreen: string;
@@ -24,33 +25,91 @@ interface JoinRequest {
 export function JoinRequests({ currentScreen, onNavigate, onBack }: JoinRequestsProps) {
   const [filter, setFilter] = useState<'pending' | 'all'>('pending');
   const [requests, setRequests] = useState<JoinRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [messId, setMessId] = useState('');
 
   useEffect(() => {
-    // Load requests from localStorage
-    const storedRequests = JSON.parse(localStorage.getItem('join-requests') || '[]');
-    setRequests(storedRequests);
+    loadJoinRequests();
   }, []);
 
-  const handleApprove = (id: string) => {
-    const updatedRequests = requests.map(req =>
-      req.id === id ? { ...req, status: 'approved' as const } : req
-    );
-    setRequests(updatedRequests);
-    localStorage.setItem('join-requests', JSON.stringify(updatedRequests));
-    
-    const request = requests.find(r => r.id === id);
-    toast.success(`${request?.name} को approve कर दिया गया! ✅`);
+  const loadJoinRequests = async () => {
+    setIsLoading(true);
+    try {
+      // Get user profile to get messId
+      const profile = await userService.getProfile();
+      if (!profile.messId) {
+        toast.error('No mess found for this account');
+        return;
+      }
+
+      setMessId(profile.messId);
+
+      // Get all mess members (includes pending requests)
+      const members = await messService.getMessMembers(profile.messId);
+      
+      // Convert to JoinRequest format
+      const joinRequests: JoinRequest[] = members.map((member: any) => ({
+        id: member.id,
+        name: member.user?.name || 'Unknown',
+        phone: member.user?.phone || '',
+        email: member.user?.email || '',
+        room: member.room || '',
+        requestDate: member.joinedAt || new Date().toISOString(),
+        status: member.status as 'pending' | 'approved' | 'rejected',
+        messId: profile.messId!
+      }));
+
+      setRequests(joinRequests);
+    } catch (error: any) {
+      console.error('Error loading join requests:', error);
+      toast.error(error.response?.data?.message || 'Failed to load join requests');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleReject = (id: string) => {
-    const updatedRequests = requests.map(req =>
-      req.id === id ? { ...req, status: 'rejected' as const } : req
-    );
-    setRequests(updatedRequests);
-    localStorage.setItem('join-requests', JSON.stringify(updatedRequests));
+  const handleApprove = async (id: string) => {
+    if (!messId) return;
     
-    const request = requests.find(r => r.id === id);
-    toast.error(`${request?.name} का request reject कर दिया गया`);
+    try {
+      const request = requests.find(r => r.id === id);
+      
+      // Update join request status via API
+      await messService.updateJoinRequest(messId, id, 'active');
+      
+      // Update local state
+      const updatedRequests = requests.map(req =>
+        req.id === id ? { ...req, status: 'approved' as const } : req
+      );
+      setRequests(updatedRequests);
+      
+      toast.success(`${request?.name} को approve कर दिया गया! ✅`);
+    } catch (error: any) {
+      console.error('Error approving request:', error);
+      toast.error(error.response?.data?.message || 'Failed to approve request');
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    if (!messId) return;
+    
+    try {
+      const request = requests.find(r => r.id === id);
+      
+      // Update join request status via API
+      await messService.updateJoinRequest(messId, id, 'rejected');
+      
+      // Update local state
+      const updatedRequests = requests.map(req =>
+        req.id === id ? { ...req, status: 'rejected' as const } : req
+      );
+      setRequests(updatedRequests);
+      
+      toast.error(`${request?.name} का request reject कर दिया गया`);
+    } catch (error: any) {
+      console.error('Error rejecting request:', error);
+      toast.error(error.response?.data?.message || 'Failed to reject request');
+    }
   };
 
   const filteredRequests = filter === 'pending' 
@@ -129,7 +188,27 @@ export function JoinRequests({ currentScreen, onNavigate, onBack }: JoinRequests
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 pb-28">
-        {filteredRequests.length === 0 ? (
+        {isLoading ? (
+          // Loading skeletons
+          <div className="flex flex-col gap-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="p-4 rounded-2xl" style={{ background: 'white', border: '2px solid #E5E7EB' }}>
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-12 h-12 rounded-full bg-gray-200 animate-pulse" />
+                  <div className="flex-1">
+                    <div className="h-6 w-32 bg-gray-200 rounded animate-pulse mb-2" />
+                    <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 mb-3">
+                  <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filteredRequests.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12">
             <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4" style={{ 
               background: 'linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)'

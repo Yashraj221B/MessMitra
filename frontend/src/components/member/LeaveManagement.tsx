@@ -49,7 +49,7 @@ export function LeaveManagement({ currentScreen, onNavigate, onBack }: LeaveMana
     };
 
     setLeaves([newLeave, ...leaves]);
-    toast.success('छुट्टी का अनुरोध भेज दिया गया! 🎉');
+    // Removed success toast - new leave appears in list, obvious to user
     setShowForm(false);
     setStartDate(undefined);
     setEndDate(undefined);

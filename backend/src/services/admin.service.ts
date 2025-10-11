@@ -22,6 +22,7 @@ interface MessData {
   address: string;
   phone: string | null;
   email: string | null;
+  description?: string | null;
   capacity: number;
   currentMembers: number;
   monthlyFee: number;
@@ -140,6 +141,7 @@ export class AdminService {
       address: mess.address,
       phone: mess.phone,
       email: mess.email,
+      description: mess.description,
       capacity: mess.capacity,
       currentMembers: mess.current_members || 0,
       monthlyFee: Number(mess.monthly_fee),
@@ -220,6 +222,39 @@ export class AdminService {
     });
 
     return users.map(user => ({
+      id: user.id,
+      phone: user.phone,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      messId: user.mess_id,
+      messName: user.messes_users_mess_idTomesses?.name || null,
+      joinStatus: user.join_status,
+      status: user.is_active ? 'active' : 'suspended',
+      createdAt: user.created_at || new Date(),
+      lastLogin: user.last_login
+    }));
+  }
+
+  /**
+   * Get all managers (users with role='manager')
+   */
+  async getManagers(): Promise<UserData[]> {
+    const managers = await prisma.users.findMany({
+      where: {
+        role: 'manager'
+      },
+      include: {
+        messes_users_mess_idTomesses: {
+          select: {
+            name: true
+          }
+        }
+      },
+      orderBy: { created_at: 'desc' }
+    });
+
+    return managers.map(user => ({
       id: user.id,
       phone: user.phone,
       name: user.name,
@@ -372,5 +407,201 @@ export class AdminService {
         token_version: (user.token_version || 0) + 1 // Invalidate existing tokens
       }
     });
+  }
+
+  /**
+   * Update user details (name, email)
+   */
+  async updateUser(userId: string, updateData: { name?: string; email?: string }): Promise<void> {
+    const user = await prisma.users.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    // Don't allow updating admin users through this endpoint
+    if (user.role === 'admin') {
+      throw new AppError('Cannot update admin users through this endpoint', 403);
+    }
+
+    // Prepare update data
+    const data: any = {};
+    if (updateData.name !== undefined && updateData.name.trim()) {
+      data.name = updateData.name.trim();
+    }
+    if (updateData.email !== undefined) {
+      // Allow setting to null or empty string to clear email
+      data.email = updateData.email.trim() || null;
+    }
+
+    // Only update if there's something to update
+    if (Object.keys(data).length > 0) {
+      await prisma.users.update({
+        where: { id: userId },
+        data
+      });
+    }
+  }
+
+  /**
+   * Create a new mess
+   */
+  async createMess(data: {
+    name: string;
+    ownerId: string;
+    address: string;
+    capacity: number;
+    monthlyFee: number;
+    phone?: string | null;
+    email?: string | null;
+    description?: string | null;
+    securityDeposit?: number | null;
+  }): Promise<MessData> {
+    // Verify owner exists and is a manager
+    const owner = await prisma.users.findUnique({
+      where: { id: data.ownerId }
+    });
+
+    if (!owner) {
+      throw new AppError('Owner user not found', 404);
+    }
+
+    if (owner.role !== 'manager') {
+      throw new AppError('Only managers can own a mess', 400);
+    }
+
+    // Check if manager already owns a mess
+    const existingMess = await prisma.messes.findFirst({
+      where: { owner_id: data.ownerId }
+    });
+
+    if (existingMess) {
+      throw new AppError('This manager already owns a mess', 400);
+    }
+
+    // Create the mess
+    const mess = await prisma.messes.create({
+      data: {
+        name: data.name,
+        owner_id: data.ownerId,
+        address: data.address,
+        capacity: data.capacity,
+        monthly_fee: data.monthlyFee,
+        phone: data.phone || null,
+        email: data.email || null,
+        description: data.description || null,
+        security_deposit: data.securityDeposit || 0,
+        current_members: 0,
+        is_active: false, // Pending approval by admin
+      },
+      include: {
+        users_messes_owner_idTousers: {
+          select: {
+            name: true,
+            phone: true
+          }
+        }
+      }
+    });
+
+    // Update owner's mess_id
+    await prisma.users.update({
+      where: { id: data.ownerId },
+      data: { mess_id: mess.id }
+    });
+
+    return {
+      id: mess.id,
+      name: mess.name,
+      address: mess.address,
+      phone: mess.phone,
+      email: mess.email,
+      description: mess.description,
+      capacity: mess.capacity,
+      currentMembers: mess.current_members || 0,
+      monthlyFee: parseFloat(mess.monthly_fee.toString()),
+      status: mess.is_active ? 'active' : 'pending',
+      ownerName: mess.users_messes_owner_idTousers.name,
+      ownerPhone: mess.users_messes_owner_idTousers.phone,
+      createdAt: mess.created_at || new Date()
+    };
+  }
+
+  /**
+   * Create a new user (manager/member)
+   */
+  async createUser(data: {
+    name: string;
+    phone: string;
+    email?: string | null;
+    password: string;
+    role: 'manager' | 'member';
+    messId?: string | null;
+  }): Promise<UserData> {
+    // Check if phone already exists
+    const existingUser = await prisma.users.findUnique({
+      where: { phone: data.phone }
+    });
+
+    if (existingUser) {
+      throw new AppError('User with this phone number already exists', 400);
+    }
+
+    // Validate role
+    if (!['manager', 'member'].includes(data.role)) {
+      throw new AppError('Invalid role. Must be manager or member', 400);
+    }
+
+    // If messId provided, verify it exists
+    if (data.messId) {
+      const mess = await prisma.messes.findUnique({
+        where: { id: data.messId }
+      });
+
+      if (!mess) {
+        throw new AppError('Mess not found', 404);
+      }
+    }
+
+    // Hash password
+    const bcrypt = require('bcrypt');
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
+    // Create user
+    const user = await prisma.users.create({
+      data: {
+        name: data.name,
+        phone: data.phone,
+        email: data.email || null,
+        password: hashedPassword,
+        role: data.role,
+        mess_id: data.messId || null,
+        join_status: data.messId ? 'approved' : null,
+        is_active: true
+      },
+      include: {
+        messes_users_mess_idTomesses: {
+          select: {
+            name: true
+          }
+        }
+      }
+    });
+
+    return {
+      id: user.id,
+      phone: user.phone,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      messId: user.mess_id,
+      messName: user.messes_users_mess_idTomesses?.name || null,
+      joinStatus: user.join_status,
+      status: user.is_active ? 'active' : 'suspended',
+      createdAt: user.created_at || new Date(),
+      lastLogin: user.last_login
+    };
   }
 }

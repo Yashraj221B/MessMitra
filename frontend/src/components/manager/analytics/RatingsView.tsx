@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Star, TrendingUp, TrendingDown, MessageSquare } from 'lucide-react';
 import { motion } from 'motion/react';
+import { toast } from 'sonner';
 import { BottomNav } from '../BottomNav';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { feedbackService, userService } from '../../../services';
 
 interface RatingsViewProps {
   currentScreen: string;
@@ -23,10 +25,35 @@ export function RatingsView({ currentScreen, onNavigate, onBack }: RatingsViewPr
   const [ratings, setRatings] = useState<MealRating[]>([]);
 
   useEffect(() => {
-    // Load ratings from localStorage (in production, this would be from backend)
-    const allRatings = JSON.parse(localStorage.getItem('all-ratings') || '[]') as MealRating[];
-    setRatings(allRatings);
-  }, []);
+    loadRatings();
+  }, [timeFilter]); // Reload when time filter changes
+
+  const loadRatings = async () => {
+    try {
+      // Get user profile to get messId
+      const profile = await userService.getProfile();
+      if (!profile.messId) {
+        toast.error('No mess found for this account');
+        return;
+      }
+
+      // Get food ratings statistics from backend
+      const statsData = await feedbackService.getFoodRatingsStats(profile.messId, timeFilter);
+      
+      // Convert recent comments to MealRating format
+      const formattedRatings: MealRating[] = (statsData.recentComments || []).map((r: any) => ({
+        mealType: r.mealType as 'breakfast' | 'lunch' | 'dinner',
+        rating: r.rating,
+        comment: r.comment,
+        timestamp: r.timestamp || r.date
+      }));
+
+      setRatings(formattedRatings);
+    } catch (error: any) {
+      console.error('Error loading ratings:', error);
+      toast.error(error.response?.data?.message || 'Failed to load ratings');
+    }
+  };
 
   const filterRatings = (ratings: MealRating[]) => {
     let filtered = ratings;

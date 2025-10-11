@@ -72,7 +72,7 @@ export function MenuPlanner({ currentScreen, onNavigate, onBack }: MenuPlannerPr
       ...prev,
       [dateKey]: { ...currentMenu, [meal]: value }
     }));
-    toast.success(getTranslation(language, 'menuSaved'));
+    // Removed success toast - menu update is visible in UI
   };
 
   const copyToTomorrow = () => {
@@ -84,10 +84,7 @@ export function MenuPlanner({ currentScreen, onNavigate, onBack }: MenuPlannerPr
       ...prev,
       [tomorrowKey]: { ...currentMenu, date: tomorrowKey }
     }));
-    const message = language === 'marathi' ? 'उद्याच्या मेन्यूमध्ये कॉपी झाले! ✅' : 
-                    language === 'hindi' ? 'कल के लिए मेन्यू कॉपी हो गया! ✅' : 
-                    'Menu copied to tomorrow! ✅';
-    toast.success(message);
+    // Removed success toast - user can navigate to tomorrow's date to see copied menu
   };
 
   const previousMenus = Object.values(menus)

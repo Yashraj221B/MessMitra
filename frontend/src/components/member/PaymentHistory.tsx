@@ -61,11 +61,11 @@ export function PaymentHistory({ currentScreen, onNavigate, onBack }: PaymentHis
   };
 
   const handlePayNow = (payment: Payment) => {
-    toast.success(`₹${payment.amount} का पेमेंट प्रोसेस हो रहा है! 💳`);
+    // Removed success toast - payment gateway will show confirmation
   };
 
   const handleDownloadReceipt = (payment: Payment) => {
-    toast.success(`${payment.month} की रसीद डाउनलोड हो रही है! 📥`);
+    // Removed success toast - download will start, browser shows notification
   };
 
   return (

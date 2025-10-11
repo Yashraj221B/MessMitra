@@ -45,7 +45,7 @@ export function Announcements({ currentScreen, onNavigate, onBack }: Announcemen
 
     setAnnouncements(prev => [newAnnouncement, ...prev]);
     setMessage('');
-    toast.success('ऐलान सभी विद्यार्थियों को भेज दिया गया!');
+    // Removed success toast - announcement appears in list, clear confirmation
   };
 
   return (

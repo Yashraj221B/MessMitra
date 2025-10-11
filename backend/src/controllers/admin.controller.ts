@@ -65,6 +65,15 @@ export class AdminController {
   });
 
   /**
+   * Get all managers
+   * GET /api/admin/managers
+   */
+  getManagers = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const result = await this.adminService.getManagers();
+    res.json(successResponse('Managers fetched successfully', result));
+  });
+
+  /**
    * Get user by ID
    * GET /api/admin/users/:userId
    */
@@ -113,5 +122,34 @@ export class AdminController {
     const { role } = req.body;
     await this.adminService.changeUserRole(userId, role);
     res.json(successResponse('User role changed successfully'));
+  });
+
+  /**
+   * Update user details
+   * PATCH /api/admin/users/:userId
+   */
+  updateUser = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const { userId } = req.params;
+    const updateData = req.body;
+    await this.adminService.updateUser(userId, updateData);
+    res.json(successResponse('User updated successfully'));
+  });
+
+  /**
+   * Create a new mess
+   * POST /api/admin/messes
+   */
+  createMess = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const result = await this.adminService.createMess(req.body);
+    res.status(201).json(successResponse('Mess created successfully', result));
+  });
+
+  /**
+   * Create a new user
+   * POST /api/admin/users
+   */
+  createUser = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const result = await this.adminService.createUser(req.body);
+    res.status(201).json(successResponse('User created successfully', result));
   });
 }

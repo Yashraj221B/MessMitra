@@ -5,6 +5,8 @@ import { BottomNav } from './BottomNav';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { getTranslation } from '../../utils/translations';
 import { BilingualText } from '../BilingualText';
+import { userService, messService } from '../../services';
+import { toast } from 'sonner';
 
 interface AdminDashboardProps {
   currentScreen: string;
@@ -14,31 +16,62 @@ interface AdminDashboardProps {
 
 export function AdminDashboard({ currentScreen, onNavigate }: AdminDashboardProps) {
   const { language } = useLanguage();
-  const [userName, setUserName] = useState('Suresh Uncle');
+  const [userName, setUserName] = useState('');
   const [messName, setMessName] = useState('');
   const [notificationCount, setNotificationCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Dashboard stats from real API
+  const [stats, setStats] = useState({
+    presentToday: 0,
+    totalMembers: 0,
+    onLeave: 0,
+    pendingPayments: 0,
+    pendingPaymentCount: 0
+  });
 
   useEffect(() => {
-    try {
-      const currentUser = localStorage.getItem('current-user');
-      if (currentUser) {
-        const data = JSON.parse(currentUser);
-        setUserName(data.name || 'Suresh Uncle');
-        setMessName(data.messName || '');
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error);
-      setUserName('Suresh Uncle');
-      setMessName('');
-    }
-
-    // Calculate notification count
-    const joinRequests = JSON.parse(localStorage.getItem('join-requests') || '[]');
-    const leaveRequests = JSON.parse(localStorage.getItem('leave-requests') || '[]');
-    const pendingJoin = joinRequests.filter((r: any) => r.status === 'pending').length;
-    const pendingLeave = leaveRequests.filter((r: any) => r.status === 'pending').length;
-    setNotificationCount(pendingJoin + pendingLeave);
+    loadDashboardData();
   }, []);
+
+  const loadDashboardData = async () => {
+    setIsLoading(true);
+    try {
+      // Get user profile
+      const profile = await userService.getProfile();
+      setUserName(profile.name || 'Mess Manager');
+      
+      // Get user's messes (assuming user has messId in profile or we need to fetch it)
+      // For now, we'll get all messes and use the first one
+      const messesResponse = await messService.getAllMesses(1, 1);
+      if (messesResponse.data && messesResponse.data.length > 0) {
+        const userMess = messesResponse.data[0];
+        setMessName(userMess.name);
+        
+        // Get dashboard stats
+        const dashboardStats = await messService.getDashboardStats(userMess.id);
+        setStats({
+          presentToday: dashboardStats.presentToday,
+          totalMembers: dashboardStats.totalMembers,
+          onLeave: dashboardStats.onLeave,
+          pendingPayments: dashboardStats.pendingPayments,
+          pendingPaymentCount: Math.ceil(dashboardStats.pendingPayments / 1000) // Rough estimate
+        });
+        
+        // Get pending requests for notification count
+        const members = await messService.getMessMembers(userMess.id);
+        const pendingMembers = members.filter((m: any) => m.status === 'pending').length;
+        setNotificationCount(pendingMembers);
+      }
+    } catch (error: any) {
+      console.error('Error loading dashboard data:', error);
+      toast.error('Failed to load dashboard data');
+      // Set default values
+      setUserName('Mess Manager');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#FAFBFC' }}>
@@ -126,10 +159,16 @@ export function AdminDashboard({ currentScreen, onNavigate }: AdminDashboardProp
           <div className="grid grid-cols-2 gap-3">
             <div>
               <div className="flex items-baseline gap-1 mb-0.5">
-                <span style={{ fontSize: '1.875rem', fontWeight: '800', color: '#0B8043', letterSpacing: '-0.02em' }}>
-                  142
-                </span>
-                <TrendingUp className="w-4 h-4 text-green-600 mb-1" />
+                {isLoading ? (
+                  <div className="w-16 h-8 bg-gray-200 rounded animate-pulse" />
+                ) : (
+                  <>
+                    <span style={{ fontSize: '1.875rem', fontWeight: '800', color: '#0B8043', letterSpacing: '-0.02em' }}>
+                      {stats.presentToday}
+                    </span>
+                    <TrendingUp className="w-4 h-4 text-green-600 mb-1" />
+                  </>
+                )}
               </div>
               <p style={{ fontSize: '0.875rem', fontWeight: '600', color: '#1A1F36', marginBottom: '2px' }}>
                 <BilingualText text={getTranslation(language, 'presentToday')} />
@@ -138,9 +177,13 @@ export function AdminDashboard({ currentScreen, onNavigate }: AdminDashboardProp
 
             <div>
               <div className="flex items-baseline gap-1 mb-0.5">
-                <span style={{ fontSize: '1.875rem', fontWeight: '800', color: '#1A1F36', letterSpacing: '-0.02em' }}>
-                  150
-                </span>
+                {isLoading ? (
+                  <div className="w-16 h-8 bg-gray-200 rounded animate-pulse" />
+                ) : (
+                  <span style={{ fontSize: '1.875rem', fontWeight: '800', color: '#1A1F36', letterSpacing: '-0.02em' }}>
+                    {stats.totalMembers}
+                  </span>
+                )}
               </div>
               <p style={{ fontSize: '0.875rem', fontWeight: '600', color: '#1A1F36', marginBottom: '2px' }}>
                 <BilingualText text={getTranslation(language, 'totalMembers')} />
@@ -174,9 +217,13 @@ export function AdminDashboard({ currentScreen, onNavigate }: AdminDashboardProp
               <TrendingDown className="w-4 h-4" style={{ color: '#FF9066' }} />
             </div>
             <div className="mb-1">
-              <span style={{ fontSize: '1.75rem', fontWeight: '800', color: '#1A1F36', letterSpacing: '-0.02em' }}>
-                8
-              </span>
+              {isLoading ? (
+                <div className="w-12 h-8 bg-gray-200 rounded animate-pulse" />
+              ) : (
+                <span style={{ fontSize: '1.75rem', fontWeight: '800', color: '#1A1F36', letterSpacing: '-0.02em' }}>
+                  {stats.onLeave}
+                </span>
+              )}
             </div>
             <p style={{ fontSize: '0.875rem', fontWeight: '600', color: '#1A1F36', marginBottom: '2px' }}>
               <BilingualText text={getTranslation(language, 'onLeave')} />
@@ -203,14 +250,20 @@ export function AdminDashboard({ currentScreen, onNavigate }: AdminDashboardProp
               }}>
                 <IndianRupee className="w-5 h-5" style={{ color: '#EF4444' }} />
               </div>
-              <div className="px-2 py-1 rounded-lg" style={{ background: 'rgba(239, 68, 68, 0.15)' }}>
-                <span style={{ fontSize: '0.6875rem', fontWeight: '700', color: '#EF4444' }}>15</span>
-              </div>
+              {!isLoading && stats.pendingPaymentCount > 0 && (
+                <div className="px-2 py-1 rounded-lg" style={{ background: 'rgba(239, 68, 68, 0.15)' }}>
+                  <span style={{ fontSize: '0.6875rem', fontWeight: '700', color: '#EF4444' }}>{stats.pendingPaymentCount}</span>
+                </div>
+              )}
             </div>
             <div className="mb-1">
-              <span style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1A1F36', letterSpacing: '-0.02em' }}>
-                ₹12,400
-              </span>
+              {isLoading ? (
+                <div className="w-20 h-7 bg-gray-200 rounded animate-pulse" />
+              ) : (
+                <span style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1A1F36', letterSpacing: '-0.02em' }}>
+                  ₹{stats.pendingPayments.toLocaleString('en-IN')}
+                </span>
+              )}
             </div>
             <p style={{ fontSize: '0.875rem', fontWeight: '600', color: '#1A1F36', marginBottom: '2px' }}>
               <BilingualText text={getTranslation(language, 'pending')} />

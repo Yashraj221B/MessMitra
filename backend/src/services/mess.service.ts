@@ -86,7 +86,7 @@ export class MessService {
   /**
    * Update mess
    */
-  async updateMess(messId: string, ownerId: string, data: UpdateMessDTO): Promise<MessResponse> {
+  async updateMess(messId: string, userId: string, userRole: string, data: UpdateMessDTO): Promise<MessResponse> {
     const mess = await prisma.messes.findUnique({
       where: { id: messId }
     });
@@ -95,7 +95,8 @@ export class MessService {
       throw new AppError('Mess not found', 404);
     }
 
-    if (mess.owner_id !== ownerId) {
+    // Allow admins to update any mess, managers only their own
+    if (userRole !== 'admin' && mess.owner_id !== userId) {
       throw new AppError('You do not have permission to update this mess', 403);
     }
 
@@ -121,7 +122,7 @@ export class MessService {
   /**
    * Delete mess (soft delete)
    */
-  async deleteMess(messId: string, ownerId: string): Promise<void> {
+  async deleteMess(messId: string, userId: string, userRole: string): Promise<void> {
     const mess = await prisma.messes.findUnique({
       where: { id: messId }
     });
@@ -130,7 +131,8 @@ export class MessService {
       throw new AppError('Mess not found', 404);
     }
 
-    if (mess.owner_id !== ownerId) {
+    // Allow admins to delete any mess, managers only their own
+    if (userRole !== 'admin' && mess.owner_id !== userId) {
       throw new AppError('You do not have permission to delete this mess', 403);
     }
 
@@ -143,7 +145,7 @@ export class MessService {
   /**
    * Regenerate QR code
    */
-  async regenerateQRCode(messId: string, ownerId: string, validityDays: number = 30): Promise<MessResponse> {
+  async regenerateQRCode(messId: string, userId: string, userRole: string, validityDays: number = 30): Promise<MessResponse> {
     const mess = await prisma.messes.findUnique({
       where: { id: messId }
     });
@@ -152,7 +154,8 @@ export class MessService {
       throw new AppError('Mess not found', 404);
     }
 
-    if (mess.owner_id !== ownerId) {
+    // Allow admins to regenerate QR for any mess, managers only their own
+    if (userRole !== 'admin' && mess.owner_id !== userId) {
       throw new AppError('You do not have permission to regenerate QR code', 403);
     }
 
@@ -266,7 +269,7 @@ export class MessService {
   /**
    * Approve/Reject join request
    */
-  async updateJoinRequest(messId: string, memberId: string, managerId: string, status: 'approved' | 'rejected'): Promise<void> {
+  async updateJoinRequest(messId: string, memberId: string, userId: string, userRole: string, status: 'approved' | 'rejected'): Promise<void> {
     const mess = await prisma.messes.findUnique({
       where: { id: messId }
     });
@@ -275,7 +278,8 @@ export class MessService {
       throw new AppError('Mess not found', 404);
     }
 
-    if (mess.owner_id !== managerId) {
+    // Allow admins to manage any mess join requests, managers only their own
+    if (userRole !== 'admin' && mess.owner_id !== userId) {
       throw new AppError('Only mess owner can approve/reject join requests', 403);
     }
 

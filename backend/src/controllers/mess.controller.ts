@@ -30,24 +30,27 @@ export class MessController {
 
   updateMess = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
     const { messId } = req.params;
-    const ownerId = req.user!.userId;
+    const userId = req.user!.userId;
+    const userRole = req.user!.role;
     const data: UpdateMessDTO = req.body;
-    const result = await this.messService.updateMess(messId, ownerId, data);
+    const result = await this.messService.updateMess(messId, userId, userRole, data);
     res.json(successResponse('Mess updated successfully', result));
   });
 
   deleteMess = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
     const { messId } = req.params;
-    const ownerId = req.user!.userId;
-    await this.messService.deleteMess(messId, ownerId);
+    const userId = req.user!.userId;
+    const userRole = req.user!.role;
+    await this.messService.deleteMess(messId, userId, userRole);
     res.json(successResponse('Mess deleted successfully'));
   });
 
   regenerateQRCode = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
     const { messId } = req.params;
-    const ownerId = req.user!.userId;
+    const userId = req.user!.userId;
+    const userRole = req.user!.role;
     const validityDays = req.body.validityDays || 30;
-    const result = await this.messService.regenerateQRCode(messId, ownerId, validityDays);
+    const result = await this.messService.regenerateQRCode(messId, userId, userRole, validityDays);
     res.json(successResponse('QR code regenerated successfully', result));
   });
 
@@ -66,9 +69,10 @@ export class MessController {
 
   updateJoinRequest = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
     const { messId, memberId } = req.params;
-    const managerId = req.user!.userId;
+    const userId = req.user!.userId;
+    const userRole = req.user!.role;
     const { status } = req.body;
-    await this.messService.updateJoinRequest(messId, memberId, managerId, status);
+    await this.messService.updateJoinRequest(messId, memberId, userId, userRole, status);
     res.json(successResponse(`Join request ${status} successfully`));
   });
 }

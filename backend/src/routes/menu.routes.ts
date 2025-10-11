@@ -16,11 +16,10 @@ const router = Router();
 // All routes require authentication
 router.use(authenticate);
 
-// Create menu for a mess (manager/admin only)
+// Create menu for a mess (manager/admin - admin can access any mess)
 router.post(
   '/:messId',
   authorize('manager', 'admin'),
-  requireMessOwnership,
   validateBody(['date', 'meals']),
   createMenu
 );

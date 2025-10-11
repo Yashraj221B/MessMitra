@@ -41,6 +41,19 @@ export class AuthService {
     let messId: string | undefined = undefined;
 
     if (data.role === 'manager') {
+      // Check if manager already exists (created by admin)
+      const existingManager = await prisma.users.findFirst({
+        where: { phone, role: 'manager' },
+        include: { messes_users_mess_idTomesses: true }
+      });
+
+      if (existingManager) {
+        // Manager was already created by admin
+        if (existingManager.mess_id && existingManager.messes_users_mess_idTomesses) {
+          throw new AppError('Manager account already exists. Please use login instead.', 409);
+        }
+      }
+
       // Manager creates a mess automatically
       if (!data.messName || !data.messAddress) {
         throw new AppError('Mess name and address are required for managers', 400);

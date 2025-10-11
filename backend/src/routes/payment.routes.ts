@@ -35,27 +35,24 @@ router.put(
 // Get payment by ID (all authenticated users)
 router.get('/:paymentId', getPaymentById);
 
-// Get all payments for a mess (manager/admin only)
+// Get all payments for a mess (manager/admin - admin can access any mess)
 router.get(
   '/mess/:messId',
   authorize('manager', 'admin'),
-  requireMessOwnership,
   getMessPayments
 );
 
-// Get overdue payments (manager/admin only)
+// Get overdue payments (manager/admin - admin can access any mess)
 router.get(
   '/mess/:messId/overdue',
   authorize('manager', 'admin'),
-  requireMessOwnership,
   getOverduePayments
 );
 
-// Get payment statistics (manager/admin only)
+// Get payment statistics (manager/admin - admin can access any mess)
 router.get(
   '/mess/:messId/stats',
   authorize('manager', 'admin'),
-  requireMessOwnership,
   getPaymentStats
 );
 

@@ -31,19 +31,17 @@ router.get('/my-leaves', getMyLeaves);
 // Get leave by ID (all authenticated users)
 router.get('/:leaveId', getLeaveById);
 
-// Get all leaves for a mess (manager/admin only)
+// Get all leaves for a mess (manager/admin - admin can access any mess)
 router.get(
   '/mess/:messId',
   authorize('manager', 'admin'),
-  requireMessOwnership,
   getMessLeaves
 );
 
-// Get leaves statistics (manager/admin only)
+// Get leaves statistics (manager/admin - admin can access any mess)
 router.get(
   '/mess/:messId/stats',
   authorize('manager', 'admin'),
-  requireMessOwnership,
   getLeaveStats
 );
 

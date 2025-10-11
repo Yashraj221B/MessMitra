@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { AuthController } from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { validateRegister, validateLogin, validateRefreshToken } from '../middleware/validation.middleware';
-import { registerLimiter, authLimiter } from '../middleware/rateLimit.middleware';
+// import { registerLimiter, authLimiter } from '../middleware/rateLimit.middleware';
 
 const router = Router();
 const authController = new AuthController();
@@ -10,21 +10,21 @@ const authController = new AuthController();
 // Public routes with rate limiting and validation
 router.post(
   '/register',
-  registerLimiter,
+  // registerLimiter,
   validateRegister,
   authController.register
 );
 
 router.post(
   '/login',
-  authLimiter,
+  // authLimiter,
   validateLogin,
   authController.login
 );
 
 router.post(
   '/refresh',
-  authLimiter,
+  // authLimiter,
   validateRefreshToken,
   authController.refreshToken
 );

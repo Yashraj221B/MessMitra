@@ -14,11 +14,10 @@ const router = Router();
 // All routes require authentication
 router.use(authenticate);
 
-// Create announcement (manager/admin only)
+// Create announcement (manager/admin - admin can access any mess)
 router.post(
   '/:messId',
   authorize('manager', 'admin'),
-  requireMessOwnership,
   validateBody(['title', 'message']),
   createAnnouncement
 );

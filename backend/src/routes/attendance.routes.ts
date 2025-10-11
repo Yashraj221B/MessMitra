@@ -24,25 +24,23 @@ router.post(
 // Get attendance by ID (all authenticated users)
 router.get('/:attendanceId', getAttendanceById);
 
-// Get attendance report for a mess (manager/admin only)
+// Get attendance report for a mess (manager/admin - admin can access any mess)
 router.get(
   '/mess/:messId/report',
   authorize('manager', 'admin'),
-  requireMessOwnership,
   getAttendanceReport
 );
 
-// Get member attendance (member can see their own, manager can see all)
+// Get member attendance (member can see their own, manager/admin can see all)
 router.get(
   '/mess/:messId/member/:memberId',
   getMemberAttendance
 );
 
-// Get attendance statistics (manager/admin only)
+// Get attendance statistics (manager/admin - admin can access any mess)
 router.get(
   '/mess/:messId/stats',
   authorize('manager', 'admin'),
-  requireMessOwnership,
   getAttendanceStats
 );
 

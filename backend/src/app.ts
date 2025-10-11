@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import routes from './routes';
 import { errorHandler } from './middleware/error.middleware';
-import { apiLimiter } from './middleware/rateLimit.middleware';
+// import { apiLimiter } from './middleware/rateLimit.middleware';
 
 dotenv.config();
 
@@ -11,9 +11,24 @@ export const createApp = (): Application => {
   const app = express();
 
   // Middleware
+  // Allow multiple origins (development + production)
+  const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173'];
+  
   app.use(cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, Postman, curl)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        console.warn(`CORS blocked origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   }));
   
   app.use(express.json());
@@ -29,7 +44,7 @@ export const createApp = (): Application => {
   });
 
   // Apply rate limiting to all API routes
-  app.use('/api', apiLimiter);
+  // app.use('/api', apiLimiter);
 
   // API routes
   app.use('/api', routes);

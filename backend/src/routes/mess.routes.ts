@@ -9,10 +9,10 @@ const messController = new MessController();
 // All routes require authentication
 router.use(authenticate);
 
-// Create mess (manager only)
+// Create mess (manager or admin)
 router.post(
   '/',
-  authorize('manager'),
+  authorize('manager', 'admin'),
   validateBody(['name', 'address', 'monthlyFee']),
   messController.createMess
 );
@@ -23,27 +23,24 @@ router.get('/', messController.getAllMesses);
 // Get mess by ID
 router.get('/:messId', messController.getMessById);
 
-// Update mess (owner or admin)
+// Update mess (manager or admin - admin can access any mess)
 router.put(
   '/:messId',
   authorize('manager', 'admin'),
-  requireMessOwnership,
   messController.updateMess
 );
 
-// Delete mess (owner or admin)
+// Delete mess (manager or admin - admin can access any mess)
 router.delete(
   '/:messId',
   authorize('manager', 'admin'),
-  requireMessOwnership,
   messController.deleteMess
 );
 
-// Regenerate QR code (owner or admin)
+// Regenerate QR code (manager or admin - admin can access any mess)
 router.post(
   '/:messId/qr-code',
   authorize('manager', 'admin'),
-  requireMessOwnership,
   messController.regenerateQRCode
 );
 
@@ -54,19 +51,17 @@ router.post(
   messController.joinMess
 );
 
-// Get mess members (owner or admin)
+// Get mess members (manager or admin - admin can access any mess)
 router.get(
   '/:messId/members',
   authorize('manager', 'admin'),
-  requireMessOwnership,
   messController.getMessMembers
 );
 
-// Approve/reject join request (owner or admin)
+// Approve/reject join request (manager or admin - admin can access any mess)
 router.put(
   '/:messId/members/:memberId/status',
   authorize('manager', 'admin'),
-  requireMessOwnership,
   validateBody(['status']),
   messController.updateJoinRequest
 );

@@ -108,6 +108,9 @@ export const API_ENDPOINTS = {
     // Statistics
     GET_STATS: `${API_VERSION}/admin/stats`,
     
+    // Utility
+    SYNC_MEMBER_COUNTS: `${API_VERSION}/admin/sync-member-counts`,
+    
     // Mess Management
     GET_MESSES: `${API_VERSION}/admin/messes`,
     CREATE_MESS: `${API_VERSION}/admin/messes`,
@@ -124,6 +127,8 @@ export const API_ENDPOINTS = {
     DELETE_USER: (userId: string) => `${API_VERSION}/admin/users/${userId}`,
     SUSPEND_USER: (userId: string) => `${API_VERSION}/admin/users/${userId}/suspend`,
     ACTIVATE_USER: (userId: string) => `${API_VERSION}/admin/users/${userId}/activate`,
+    ENROLL_USER: (userId: string) => `${API_VERSION}/admin/users/${userId}/enroll`,
+    REMOVE_USER_FROM_MESS: (userId: string) => `${API_VERSION}/admin/users/${userId}/remove-from-mess`,
     CHANGE_USER_ROLE: (userId: string) => `${API_VERSION}/admin/users/${userId}/role`,
   },
 } as const;

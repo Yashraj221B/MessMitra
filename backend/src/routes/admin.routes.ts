@@ -12,6 +12,9 @@ router.use(authorize('admin'));
 // Platform statistics
 router.get('/stats', adminController.getPlatformStats);
 
+// Utility endpoints
+router.post('/sync-member-counts', adminController.syncMemberCounts);
+
 // Mess management
 router.get('/messes', adminController.getAllMesses);
 router.post('/messes', adminController.createMess);
@@ -26,6 +29,8 @@ router.get('/managers', adminController.getManagers);
 router.get('/users/:userId', adminController.getUserById);
 router.post('/users/:userId/suspend', adminController.suspendUser);
 router.post('/users/:userId/activate', adminController.activateUser);
+router.post('/users/:userId/enroll', adminController.enrollUserInMess);
+router.post('/users/:userId/remove-from-mess', adminController.removeUserFromMess);
 router.delete('/users/:userId', adminController.deleteUser);
 router.patch('/users/:userId/role', adminController.changeUserRole);
 router.patch('/users/:userId', adminController.updateUser);

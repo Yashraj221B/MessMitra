@@ -179,6 +179,27 @@ class AdminService {
     const response = await api.post(API_ENDPOINTS.ADMIN.CREATE_USER, data);
     return response.data;
   }
+
+  /**
+   * Sync member counts for all messes
+   */
+  async syncMemberCounts(): Promise<void> {
+    await api.post(API_ENDPOINTS.ADMIN.SYNC_MEMBER_COUNTS);
+  }
+
+  /**
+   * Enroll a user in a mess
+   */
+  async enrollUserInMess(userId: string, messId: string): Promise<void> {
+    await api.post(API_ENDPOINTS.ADMIN.ENROLL_USER(userId), { messId });
+  }
+
+  /**
+   * Remove a user from a mess
+   */
+  async removeUserFromMess(userId: string): Promise<void> {
+    await api.post(API_ENDPOINTS.ADMIN.REMOVE_USER_FROM_MESS(userId));
+  }
 }
 
 export const adminService = new AdminService();

@@ -373,6 +373,22 @@ export class AdminService {
       throw new AppError('Cannot delete user who owns messes. Transfer ownership first.', 400);
     }
 
+    // Decrement mess member count if user was a member of a mess
+    if (user.mess_id && user.role === 'member' && user.join_status === 'approved') {
+      const mess = await prisma.messes.findUnique({
+        where: { id: user.mess_id }
+      });
+
+      if (mess) {
+        await prisma.messes.update({
+          where: { id: user.mess_id },
+          data: {
+            current_members: Math.max(0, (mess.current_members || 0) - 1)
+          }
+        });
+      }
+    }
+
     await prisma.users.delete({
       where: { id: userId }
     });
@@ -590,6 +606,22 @@ export class AdminService {
       }
     });
 
+    // Update mess member count if user is assigned to a mess and is a member
+    if (data.messId && data.role === 'member') {
+      const mess = await prisma.messes.findUnique({
+        where: { id: data.messId }
+      });
+
+      if (mess) {
+        await prisma.messes.update({
+          where: { id: data.messId },
+          data: {
+            current_members: (mess.current_members || 0) + 1
+          }
+        });
+      }
+    }
+
     return {
       id: user.id,
       phone: user.phone,
@@ -603,5 +635,135 @@ export class AdminService {
       createdAt: user.created_at || new Date(),
       lastLogin: user.last_login
     };
+  }
+
+  /**
+   * Enroll a user in a mess (admin only)
+   * This directly assigns a user to a mess with approved status
+   */
+  async enrollUserInMess(userId: string, messId: string): Promise<void> {
+    // Verify user exists and is a member
+    const user = await prisma.users.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    if (user.role !== 'member') {
+      throw new AppError('Only members can be enrolled in a mess', 400);
+    }
+
+    if (user.mess_id) {
+      throw new AppError('User is already enrolled in a mess', 400);
+    }
+
+    // Verify mess exists and has capacity
+    const mess = await prisma.messes.findUnique({
+      where: { id: messId }
+    });
+
+    if (!mess) {
+      throw new AppError('Mess not found', 404);
+    }
+
+    if (!mess.is_active) {
+      throw new AppError('Cannot enroll in an inactive mess', 400);
+    }
+
+    if (mess.current_members && mess.current_members >= mess.capacity) {
+      throw new AppError('Mess is at full capacity', 400);
+    }
+
+    // Enroll user with approved status
+    await prisma.users.update({
+      where: { id: userId },
+      data: {
+        mess_id: messId,
+        join_status: 'approved'
+      }
+    });
+
+    // Increment mess member count
+    await prisma.messes.update({
+      where: { id: messId },
+      data: {
+        current_members: (mess.current_members || 0) + 1
+      }
+    });
+  }
+
+  /**
+   * Remove a user from a mess (admin only)
+   * This removes the mess assignment and decrements member count
+   */
+  async removeUserFromMess(userId: string): Promise<void> {
+    // Verify user exists and is enrolled
+    const user = await prisma.users.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    if (!user.mess_id) {
+      throw new AppError('User is not enrolled in any mess', 400);
+    }
+
+    const messId = user.mess_id;
+
+    // Remove user from mess
+    await prisma.users.update({
+      where: { id: userId },
+      data: {
+        mess_id: null,
+        join_status: null
+      }
+    });
+
+    // Decrement mess member count if user was approved
+    if (user.join_status === 'approved' || user.join_status === 'pending') {
+      const mess = await prisma.messes.findUnique({
+        where: { id: messId }
+      });
+
+      if (mess) {
+        await prisma.messes.update({
+          where: { id: messId },
+          data: {
+            current_members: Math.max(0, (mess.current_members || 0) - 1)
+          }
+        });
+      }
+    }
+  }
+
+  /**
+   * Utility: Recalculate and sync member counts for all messes
+   * Use this to fix any inconsistencies in member counts
+   */
+  async syncMemberCounts(): Promise<void> {
+    const messes = await prisma.messes.findMany();
+
+    for (const mess of messes) {
+      // Count actual members (role=member, join_status=approved or pending)
+      const actualCount = await prisma.users.count({
+        where: {
+          mess_id: mess.id,
+          role: 'member',
+          join_status: { in: ['approved', 'pending'] }
+        }
+      });
+
+      // Update if different
+      if (mess.current_members !== actualCount) {
+        await prisma.messes.update({
+          where: { id: mess.id },
+          data: { current_members: actualCount }
+        });
+      }
+    }
   }
 }

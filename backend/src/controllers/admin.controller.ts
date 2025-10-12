@@ -152,4 +152,34 @@ export class AdminController {
     const result = await this.adminService.createUser(req.body);
     res.status(201).json(successResponse('User created successfully', result));
   });
+
+  /**
+   * Sync member counts for all messes
+   * POST /api/admin/sync-member-counts
+   */
+  syncMemberCounts = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
+    await this.adminService.syncMemberCounts();
+    res.json(successResponse('Member counts synced successfully'));
+  });
+
+  /**
+   * Enroll a user in a mess
+   * POST /api/admin/users/:userId/enroll
+   */
+  enrollUserInMess = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const { userId } = req.params;
+    const { messId } = req.body;
+    await this.adminService.enrollUserInMess(userId, messId);
+    res.json(successResponse('User enrolled in mess successfully'));
+  });
+
+  /**
+   * Remove a user from a mess
+   * POST /api/admin/users/:userId/remove-from-mess
+   */
+  removeUserFromMess = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const { userId } = req.params;
+    await this.adminService.removeUserFromMess(userId);
+    res.json(successResponse('User removed from mess successfully'));
+  });
 }

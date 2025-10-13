@@ -5,7 +5,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
 import { toast } from 'sonner';
-import { userService } from '../../services';
+import { userService, authService } from '../../services';
 
 interface MemberProfileProps {
   currentScreen: string;
@@ -25,6 +25,28 @@ export function MemberProfile({ onBack, onLogout }: MemberProfileProps) {
   useEffect(() => {
     loadProfile();
   }, []);
+
+  // Handle logout properly - call authService first, then parent handler
+  const handleLogout = async () => {
+    try {
+      // Call backend logout endpoint to invalidate tokens
+      await authService.logout();
+      // Then call parent logout handler to navigate
+      if (onLogout) {
+        onLogout();
+      } else {
+        onBack();
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if API call fails, still clear local state and navigate
+      if (onLogout) {
+        onLogout();
+      } else {
+        onBack();
+      }
+    }
+  };
 
   const loadProfile = async () => {
     try {
@@ -286,15 +308,15 @@ export function MemberProfile({ onBack, onLogout }: MemberProfileProps) {
                     Are you sure you want to logout? You'll need to login again to access your account.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={onLogout}
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                    onClick={handleLogout}
                     style={{ background: '#DC2626' }}
-                  >
+                    >
                     Logout
-                  </AlertDialogAction>
-                </AlertDialogFooter>
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
           </motion.div>

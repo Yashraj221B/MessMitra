@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Search, UserPlus, Phone, Home, Calendar, Check, X } from 'lucide-react';
+import { ArrowLeft, Search, UserPlus, Phone, Home, Calendar, Check, X, Loader2, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BottomNav } from '../BottomNav';
-import { messService, userService } from '../../../services';
+import { messService, userService, authService } from '../../../services';
 import { toast } from 'sonner';
 
 interface MemberManagementProps {
@@ -25,6 +25,15 @@ export function MemberManagement({ currentScreen, onNavigate, onBack }: MemberMa
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [messId, setMessId] = useState<string>('');
+  const [newMember, setNewMember] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    password: ''
+  });
 
   useEffect(() => {
     loadMembers();
@@ -40,23 +49,82 @@ export function MemberManagement({ currentScreen, onNavigate, onBack }: MemberMa
         return;
       }
 
+      setMessId(profile.messId);
+
       const messMembers = await messService.getMessMembers(profile.messId);
+      console.log('Raw mess members response:', messMembers);
+      
       const activeMembers = messMembers.filter(m => m.status === 'active');
+      console.log('Active members:', activeMembers);
       
       const membersData: Member[] = activeMembers.map(member => ({
         id: member.userId,
-        name: member.user.name || member.user.phone,
+        name: member.user?.name || member.user?.phone || 'Unknown',
         room: 'N/A', // TODO: Add room field
-        phone: member.user.phone,
+        phone: member.user?.phone || '',
         joinDate: new Date(member.joinedAt).toLocaleDateString('hi-IN'),
         paymentStatus: 'pending', // TODO: Get from payment service
         attendance: 85 // TODO: Get from attendance service
       }));
       
+      console.log('Mapped members data:', membersData);
       setMembers(membersData);
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to load members');
       console.error('Error loading members:', error);
+    }
+  };
+
+  const handleAddMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!messId) {
+      toast.error('No mess ID found');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Step 1: Register new member using auth/register endpoint
+      const registerResult = await authService.register({
+        name: newMember.name,
+        phone: newMember.phone,
+        email: newMember.email || '',
+        password: newMember.password,
+        role: 'member'
+      });
+
+      if (registerResult.success && registerResult.user) {
+        const memberId = (registerResult.user as any).id;
+        
+        // Step 2: Auto-approve the member to join this mess
+        try {
+          await messService.updateJoinRequest(messId, memberId, 'active');
+          toast.success('Member added and enrolled successfully!');
+        } catch (joinError: any) {
+          console.warn('Member created but auto-enrollment failed:', joinError);
+          // Member is created but needs manual approval
+          toast.success('Member created! They can now join using the mess code.');
+        }
+      }
+
+      setShowAddForm(false);
+      setNewMember({
+        name: '',
+        phone: '',
+        email: '',
+        password: ''
+      });
+      
+      // Reload members list
+      await loadMembers();
+    } catch (error: any) {
+      console.error('Error adding member:', error);
+      const message = error.response?.data?.message || error.message || 'Failed to add member';
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -89,6 +157,7 @@ export function MemberManagement({ currentScreen, onNavigate, onBack }: MemberMa
             <p className="text-white/80" style={{ fontSize: '0.85rem' }}>Member Management</p>
           </div>
           <button
+            onClick={() => setShowAddForm(true)}
             className="p-2.5 rounded-xl active:scale-95 transition-all"
             style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)' }}
           >
@@ -241,6 +310,134 @@ export function MemberManagement({ currentScreen, onNavigate, onBack }: MemberMa
 
       {/* Bottom Navigation */}
       <BottomNav currentScreen={currentScreen} onNavigate={onNavigate} />
+
+      {/* Add Member Dialog */}
+      <AnimatePresence>
+        {showAddForm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-end"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowAddForm(false);
+                setNewMember({ 
+                  name: '', 
+                  phone: '', 
+                  email: '', 
+                  password: '' 
+                });
+              }
+            }}
+          >
+            <motion.div
+              initial={{ y: 500 }}
+              animate={{ y: 0 }}
+              exit={{ y: 500 }}
+              className="w-full max-w-md bg-white rounded-2xl p-6 m-4"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1A1F36', marginBottom: '4px' }}>
+                    नया सदस्य जोड़ें
+                  </h2>
+                  <p style={{ fontSize: '0.875rem', color: '#666' }}>Add New Member</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setNewMember({ 
+                      name: '', 
+                      phone: '', 
+                      email: '', 
+                      password: '' 
+                    });
+                  }}
+                  className="p-2 rounded-xl hover:bg-gray-100"
+                >
+                  <X className="w-6 h-6 text-gray-600" />
+                </button>
+              </div>
+
+              <form className="space-y-4" onSubmit={handleAddMember}>
+                {/* Student Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Student Name *</label>
+                  <input
+                    type="text"
+                    value={newMember.name}
+                    onChange={e => setNewMember(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50"
+                    placeholder="विद्यार्थी का नाम / Student Name"
+                    required
+                  />
+                </div>
+
+                {/* Phone Number */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
+                  <input
+                    type="tel"
+                    value={newMember.phone}
+                    onChange={e => setNewMember(prev => ({ ...prev, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50"
+                    placeholder="फ़ोन नंबर / 10-digit Phone Number"
+                    maxLength={10}
+                    required
+                  />
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email (Optional)</label>
+                  <input
+                    type="email"
+                    value={newMember.email}
+                    onChange={e => setNewMember(prev => ({ ...prev, email: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50"
+                    placeholder="ईमेल / Email Address"
+                  />
+                </div>
+
+                {/* Password */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+                  <input
+                    type="password"
+                    value={newMember.password}
+                    onChange={e => setNewMember(prev => ({ ...prev, password: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50"
+                    placeholder="पासवर्ड / Password (min 6 characters)"
+                    minLength={6}
+                    required
+                  />
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-3.5 rounded-xl text-white font-semibold active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  style={{ background: 'linear-gradient(135deg, #48C479 0%, #0B8043 100%)' }}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Adding...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-5 h-5" />
+                      <span>Add New Member</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

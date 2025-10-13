@@ -14,40 +14,16 @@ export function BottomNav({ currentScreen, onNavigate }: BottomNavProps) {
   const getNavLabel = (key: string) => {
     const labels: { [key: string]: { marathi: string; hindi: string; english: string } } = {
       dashboard: { marathi: 'होम', hindi: 'होम', english: 'Home' },
-      'menu-planner': { marathi: 'मेन्यू', hindi: 'मेन्यू', english: 'Menu' },
-      attendance: { marathi: 'हाज़िरी', hindi: 'हाज़िरी', english: 'Attend' },
-      billing: { marathi: 'पेमेंट', hindi: 'पेमेंट', english: 'Payment' },
-      settings: { marathi: 'सेटिंग्ज', hindi: 'सेटिंग्स', english: 'Settings' },
+      attendance: { marathi: 'हाज़िरी', hindi: 'हाज़िरी', english: 'Attendance' },
+      billing: { marathi: 'पेमेंट', hindi: 'पेमेंट', english: 'Payment' }
     };
     return labels[key]?.[language] || labels[key]?.english || key;
   };
-  
+
   const navItems = [
-    { 
-      id: 'dashboard', 
-      icon: Home, 
-      color: '#0B8043' 
-    },
-    { 
-      id: 'menu-planner', 
-      icon: UtensilsCrossed, 
-      color: '#0B8043' 
-    },
-    { 
-      id: 'attendance', 
-      icon: ClipboardCheck, 
-      color: '#0B8043' 
-    },
-    { 
-      id: 'billing', 
-      icon: IndianRupee, 
-      color: '#0B8043' 
-    },
-    { 
-      id: 'settings', 
-      icon: Settings, 
-      color: '#0B8043' 
-    },
+    { id: 'dashboard', icon: Home, color: '#0B8043' },
+    { id: 'attendance', icon: ClipboardCheck, color: '#0B8043' },
+    { id: 'billing', icon: IndianRupee, color: '#0B8043' }
   ];
 
   return (
@@ -60,7 +36,7 @@ export function BottomNav({ currentScreen, onNavigate }: BottomNavProps) {
       }}
     >
       <div className="max-w-[430px] mx-auto">
-        <div className="grid grid-cols-5 gap-0.5 px-1 py-2">
+  <div className="grid grid-cols-3 gap-0.5 px-1 py-2">
           {navItems.map((item) => {
             const isActive = currentScreen === item.id;
             const Icon = item.icon;

@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from 'sonner';
 import { getTranslation } from '../../utils/translations';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { userService, messService } from '../../services';
+import { userService, messService, authService } from '../../services';
 
 interface AdminProfileProps {
   currentScreen: string;
@@ -34,6 +34,28 @@ export function AdminProfile({ onBack, onLogout }: AdminProfileProps) {
   useEffect(() => {
     loadProfileData();
   }, []);
+
+  // Handle logout properly - call authService first, then parent handler
+  const handleLogout = async () => {
+    try {
+      // Call backend logout endpoint to invalidate tokens
+      await authService.logout();
+      // Then call parent logout handler to navigate
+      if (onLogout) {
+        onLogout();
+      } else {
+        onBack();
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if API call fails, still clear local state and navigate
+      if (onLogout) {
+        onLogout();
+      } else {
+        onBack();
+      }
+    }
+  };
 
   const loadProfileData = async () => {
     setIsLoading(true);
@@ -389,7 +411,7 @@ export function AdminProfile({ onBack, onLogout }: AdminProfileProps) {
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>{getTranslation(language, 'cancel')}</AlertDialogCancel>
-                    <AlertDialogAction onClick={onLogout || onBack}>
+                    <AlertDialogAction onClick={handleLogout}>
                       {getTranslation(language, 'logout')}
                     </AlertDialogAction>
                   </AlertDialogFooter>

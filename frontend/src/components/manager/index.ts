@@ -3,6 +3,7 @@
 export { AdminDashboard } from './AdminDashboard';
 export { AdminProfile } from './AdminProfile';
 export { BottomNav } from './BottomNav';
+export { FeedbackManagement } from './FeedbackManagement';
 
 // Operations
 export { Attendance } from './operations/Attendance';

@@ -12,3 +12,4 @@ export { adminService } from './admin.service';
 export { menuService } from './menu.service';
 export { leaveService } from './leave.service';
 export { announcementService } from './announcement.service';
+export { notificationService } from './notification.service';

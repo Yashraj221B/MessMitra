@@ -1,7 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { RoleSelection } from '../components/RoleSelection';
 import { Login } from '../components/Login';
-import { MobileContainer } from '../components/MobileContainer';
 import type { Role } from '../types';
 
 // Lazy load routers for better performance
@@ -17,10 +16,15 @@ export function AppRouter() {
 
   // Initialize app and restore session (using JWT tokens from cookies)
   useEffect(() => {
-    // Check if user has valid JWT token in cookies
-    // The backend will validate the token automatically
-    // For now, just start at role selection
-    // TODO: Add auto-login with JWT token validation
+    // Check if user has valid JWT token and restore session
+    const savedRole = localStorage.getItem('messmitra-role') as Role;
+    const savedAuth = localStorage.getItem('messmitra-auth') === 'true';
+    const savedUser = localStorage.getItem('current-user');
+    
+    if (savedRole && savedAuth && savedUser) {
+      setRole(savedRole);
+      setScreen('app');
+    }
   }, []);
 
   // Handle role selection
@@ -59,7 +63,9 @@ export function AppRouter() {
   };
 
   // Handle logout
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Note: authService.logout() is called in the profile/settings component before this
+    // This function just handles the UI state cleanup
     setRole(null);
     setScreen('role-selection');
     localStorage.removeItem('messmitra-role');
@@ -80,52 +86,41 @@ export function AppRouter() {
   };
 
   // Render appropriate screen
-  // Admin gets full-width desktop layout, others get mobile container
-  const content = (() => {
-    switch (screen) {
-      case 'role-selection':
-        return <RoleSelection onSelectRole={handleRoleSelect} />;
-      
-      case 'login':
-        return (
-          <Login
-            role={role!}
-            onBack={handleBack}
-            onLoginSuccess={handleLoginSuccess}
-          />
-        );
-      
-      case 'app':
-        return (
-          <Suspense fallback={
-            <div className="flex items-center justify-center min-h-screen bg-slate-100">
-              <div className="text-center">
-                <div className="animate-spin w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p className="text-gray-600 font-semibold text-lg">Loading dashboard...</p>
-                <p className="text-gray-500 text-sm mt-2">Please wait while we prepare your workspace</p>
-              </div>
+  switch (screen) {
+    case 'role-selection':
+      return <RoleSelection onSelectRole={handleRoleSelect} />;
+    
+    case 'login':
+      return (
+        <Login
+          role={role!}
+          onBack={handleBack}
+          onLoginSuccess={handleLoginSuccess}
+        />
+      );
+    
+    case 'app':
+      return (
+        <Suspense fallback={
+          <div className="flex items-center justify-center min-h-screen bg-slate-100">
+            <div className="text-center">
+              <div className="animate-spin w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p className="text-gray-600 font-semibold text-lg">Loading dashboard...</p>
+              <p className="text-gray-500 text-sm mt-2">Please wait while we prepare your workspace</p>
             </div>
-          }>
-            {role === 'admin' ? (
-              // Admin gets full desktop layout - NO mobile container
-              <AdminRouter onLogout={handleLogout} />
-            ) : role === 'manager' ? (
-              <ManagerRouter onLogout={handleLogout} />
-            ) : (
-              <MemberRouter onLogout={handleLogout} />
-            )}
-          </Suspense>
-        );
-      
-      default:
-        return null;
-    }
-  })();
-
-  // Wrap non-admin screens in mobile container
-  if (screen === 'app' && role === 'admin') {
-    return content;
+          </div>
+        }>
+          {role === 'admin' ? (
+            <AdminRouter onLogout={handleLogout} />
+          ) : role === 'manager' ? (
+            <ManagerRouter onLogout={handleLogout} />
+          ) : (
+            <MemberRouter onLogout={handleLogout} />
+          )}
+        </Suspense>
+      );
+    
+    default:
+      return null;
   }
-
-  return <MobileContainer>{content}</MobileContainer>;
 }

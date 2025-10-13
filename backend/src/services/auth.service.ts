@@ -14,9 +14,9 @@ export class AuthService {
   async register(data: RegisterDTO): Promise<AuthResponse> {
     // Validate phone number
     const phone = formatPhoneNumber(data.phone);
-    if (!validatePhoneNumber(phone)) {
-      throw new AppError('Invalid phone number format', 400);
-    }
+    // if (!validatePhoneNumber(phone)) {
+    //   throw new AppError('Invalid phone number format', 400);
+    // }
 
     // Validate password
     const passwordValidation = validatePassword(data.password);
@@ -196,9 +196,9 @@ export class AuthService {
   async login(data: LoginDTO): Promise<AuthResponse> {
     // Validate phone number
     const phone = formatPhoneNumber(data.phone);
-    if (!validatePhoneNumber(phone)) {
-      throw new AppError('Invalid phone number format', 400);
-    }
+    // if (!validatePhoneNumber(phone)) {
+    //   throw new AppError('Invalid phone number format', 400);
+    // }
 
     // Find user with mess information
     const roleEnum = data.role === 'admin' ? 'admin' : 

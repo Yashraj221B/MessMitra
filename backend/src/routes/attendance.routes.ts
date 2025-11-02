@@ -6,7 +6,7 @@ import {
   getMemberAttendance,
   getAttendanceStats
 } from '../controllers/attendance.controller';
-import { authenticate, authorize, requireMessOwnership } from '../middleware/auth.middleware';
+import { authenticate, authorize } from '../middleware/auth.middleware';
 import { validateBody } from '../middleware/validation.middleware';
 
 const router = Router();
@@ -17,7 +17,7 @@ router.use(authenticate);
 // Mark attendance (manager/admin or member marking their own)
 router.post(
   '/',
-  validateBody(['messId', 'memberId', 'date', 'mealType', 'scanMethod']),
+  validateBody(['messId', 'date', 'mealType', 'scanMethod']),
   markAttendance
 );
 
@@ -34,6 +34,7 @@ router.get(
 // Get member attendance (member can see their own, manager/admin can see all)
 router.get(
   '/mess/:messId/member/:memberId',
+  authorize('manager', 'admin', 'member'),
   getMemberAttendance
 );
 

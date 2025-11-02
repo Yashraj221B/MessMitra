@@ -6,7 +6,7 @@ export class MenuService {
 
   async createMenu(messId: string, data: CreateMenuDTO): Promise<any> {
     // Verify mess exists
-    const mess = await prisma.messes.findUnique({ where: { id: messId, is_active: true } });
+  const mess = await prisma.messes.findFirst({ where: { id: messId, is_active: true } });
     if (!mess) {
       throw new AppError('Mess not found', 404);
     }

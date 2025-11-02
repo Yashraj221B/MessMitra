@@ -23,7 +23,7 @@ INSERT INTO users (
 VALUES (
     uuid_generate_v4(),
     '9999999999',
-    '$2b$10$YourBcryptHashHere',  -- Replace with actual bcrypt hash
+    '$2b$10$dEWCAcMyuGj0D3ThlzkcVeXLtnlt4.wLwF2osYRk4WW0hVIQGSJBe',
     'Platform Administrator',
     'admin@messmitra.com',
     'admin',

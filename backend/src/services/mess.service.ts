@@ -235,14 +235,6 @@ export class MessService {
         join_status: 'pending'
       }
     });
-
-    // Update mess member count
-    await prisma.messes.update({
-      where: { id: mess.id },
-      data: {
-        current_members: (mess.current_members || 0) + 1
-      }
-    });
   }
 
   /**
@@ -300,6 +292,12 @@ export class MessService {
         where: { id: memberId },
         data: { join_status: status }
       });
+      await prisma.messes.update({
+        where: { id: messId },
+        data: {
+          current_members: (mess.current_members || 0) + 1
+        }
+      });
     } else {
       // If rejected, remove from mess
       await prisma.users.update({
@@ -310,13 +308,7 @@ export class MessService {
         }
       });
 
-      // Decrease mess member count
-      await prisma.messes.update({
-        where: { id: messId },
-        data: {
-          current_members: Math.max(0, (mess.current_members || 0) - 1)
-        }
-      });
+      // No member count adjustment needed for pending-to-rejected transition
     }
   }
 

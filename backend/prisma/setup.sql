@@ -505,8 +505,30 @@ CREATE TRIGGER update_feedbacks_updated_at BEFORE UPDATE ON feedbacks
 -- ==========================================
 
 -- Insert admin user
-INSERT INTO users (phone, password, name, role, is_active, join_status) 
-VALUES ('9999999999', '$2b$10$abcdefghijklmnopqrstuvwxy', 'Admin User', 'admin', TRUE, 'approved');
+INSERT INTO users (
+    id,
+    phone, 
+    password, 
+    name, 
+    email,
+    role, 
+    is_active, 
+    join_status,
+    created_at,
+    updated_at
+) 
+VALUES (
+    uuid_generate_v4(),
+    '9999999999',
+    '$2b$10$dEWCAcMyuGj0D3ThlzkcVeXLtnlt4.wLwF2osYRk4WW0hVIQGSJBe',
+    'Platform Administrator',
+    'admin@messmitra.com',
+    'admin',
+    TRUE,
+    'approved',
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+) ON CONFLICT (phone) DO NOTHING;
 
 -- Success message
 SELECT 'Database setup completed successfully!' AS message;

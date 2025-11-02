@@ -33,7 +33,6 @@ router.put(
 );
 
 // Get payment by ID (all authenticated users)
-router.get('/:paymentId', getPaymentById);
 
 // Get all payments for a mess (manager/admin - admin can access any mess)
 router.get(
@@ -57,6 +56,16 @@ router.get(
 );
 
 // Get member payments (member can see their own)
-router.get('/member/:memberId', getMemberPayments);
+router.get(
+  '/member/:memberId',
+  authorize('manager', 'admin', 'member'),
+  getMemberPayments
+);
+
+router.get(
+  '/:paymentId',
+  authorize('manager', 'admin', 'member'),
+  getPaymentById
+);
 
 export default router;

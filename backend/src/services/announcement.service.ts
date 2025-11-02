@@ -5,7 +5,7 @@ import { CreateAnnouncementDTO, UpdateAnnouncementDTO, AnnouncementResponse } fr
 export class AnnouncementService {
 
   async createAnnouncement(managerId: string, data: CreateAnnouncementDTO): Promise<any> {
-    const mess = await prisma.messes.findUnique({
+    const mess = await prisma.messes.findFirst({
       where: { id: data.messId, is_active: true }
     });
     if (!mess) {

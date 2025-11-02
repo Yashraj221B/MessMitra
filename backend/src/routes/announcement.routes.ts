@@ -6,7 +6,7 @@ import {
   updateAnnouncement,
   deleteAnnouncement
 } from '../controllers/announcement.controller';
-import { authenticate, authorize, requireMessOwnership } from '../middleware/auth.middleware';
+import { authenticate, authorize, requireMessOwnership, requireMessMembership } from '../middleware/auth.middleware';
 import { validateBody } from '../middleware/validation.middleware';
 
 const router = Router();
@@ -18,7 +18,8 @@ router.use(authenticate);
 router.post(
   '/:messId',
   authorize('manager', 'admin'),
-  validateBody(['title', 'message']),
+  requireMessOwnership,
+  validateBody(['title', 'content']),
   createAnnouncement
 );
 
@@ -26,7 +27,7 @@ router.post(
 router.get('/:announcementId', getAnnouncementById);
 
 // Get all announcements for a mess (all authenticated users in the mess)
-router.get('/mess/:messId', getMessAnnouncements);
+router.get('/mess/:messId', requireMessMembership, getMessAnnouncements);
 
 // Update announcement (manager/admin only)
 router.put(

@@ -3,6 +3,18 @@ import { AppError } from '../middleware/error.middleware';
 import { CreatePaymentDTO, RecordPaymentDTO, PaymentResponse } from '../types/payment.types';
 import { generateReceiptNumber } from '../utils/helpers.util';
 
+type ElevatedRequester = {
+  role: 'admin' | 'manager';
+  userId: string;
+  messId?: string;
+};
+
+type RequesterContext = ElevatedRequester | {
+  role: 'member';
+  userId: string;
+  messId?: string;
+};
+
 // Helper to format payment response
 const formatPaymentResponse = (payment: any, memberName?: string): PaymentResponse => ({
   id: payment.id,
@@ -29,9 +41,15 @@ const formatPaymentResponse = (payment: any, memberName?: string): PaymentRespon
 
 export class PaymentService {
 
-  async createPayment(data: CreatePaymentDTO): Promise<PaymentResponse> {
+  async createPayment(data: CreatePaymentDTO, requester: ElevatedRequester): Promise<PaymentResponse> {
+    if (requester.role === 'manager') {
+      if (!requester.messId || requester.messId !== data.messId) {
+        throw new AppError('Managers can only create payments for their own mess', 403);
+      }
+    }
+
     // Verify mess and member
-    const mess = await prisma.messes.findUnique({
+    const mess = await prisma.messes.findFirst({
       where: { id: data.messId, is_active: true }
     });
     if (!mess) {
@@ -95,7 +113,11 @@ export class PaymentService {
     };
   }
 
-  async recordPayment(paymentId: string, data: RecordPaymentDTO): Promise<PaymentResponse> {
+  async recordPayment(
+    paymentId: string,
+    data: RecordPaymentDTO,
+    requester: ElevatedRequester
+  ): Promise<PaymentResponse> {
     const payment = await prisma.payments.findUnique({
       where: { id: paymentId },
       include: { users: true }
@@ -103,6 +125,12 @@ export class PaymentService {
 
     if (!payment) {
       throw new AppError('Payment not found', 404);
+    }
+
+    if (requester.role === 'manager') {
+      if (!requester.messId || requester.messId !== payment.mess_id) {
+        throw new AppError('Managers can only record payments for their mess', 403);
+      }
     }
 
     if (payment.status === 'paid') {
@@ -163,9 +191,21 @@ export class PaymentService {
     return formatPaymentResponse(payment);
   }
 
-  async getMessPayments(messId: string, status?: string, month?: number, year?: number): Promise<PaymentResponse[]> {
+  async getMessPayments(
+    messId: string,
+    status: string | undefined,
+    month: number | undefined,
+    year: number | undefined,
+    requester: ElevatedRequester
+  ): Promise<PaymentResponse[]> {
+    if (requester.role === 'manager') {
+      if (!requester.messId || requester.messId !== messId) {
+        throw new AppError('Managers can only view payments for their mess', 403);
+      }
+    }
+
     const whereConditions: any = { mess_id: messId };
-    
+
     if (status) whereConditions.status = status;
     if (month) whereConditions.month = month;
     if (year) whereConditions.year = year;
@@ -179,7 +219,28 @@ export class PaymentService {
     return payments.map(payment => formatPaymentResponse(payment));
   }
 
-  async getMemberPayments(memberId: string): Promise<PaymentResponse[]> {
+  async getMemberPayments(
+    memberId: string,
+    requester: RequesterContext
+  ): Promise<PaymentResponse[]> {
+    if (requester.role === 'member' && requester.userId !== memberId) {
+      throw new AppError('You can only view your own payments', 403);
+    }
+
+    if (requester.role === 'manager') {
+      if (!requester.messId) {
+        throw new AppError('Manager does not have an associated mess', 400);
+      }
+
+      const member = await prisma.users.findFirst({
+        where: { id: memberId, mess_id: requester.messId }
+      });
+
+      if (!member) {
+        throw new AppError('You do not have permission to view this member\'s payments', 403);
+      }
+    }
+
     const payments = await prisma.payments.findMany({
       where: { member_id: memberId },
       include: { users: true },
@@ -189,9 +250,18 @@ export class PaymentService {
     return payments.map(payment => formatPaymentResponse(payment));
   }
 
-  async getOverduePayments(messId: string): Promise<PaymentResponse[]> {
+  async getOverduePayments(
+    messId: string,
+    requester: ElevatedRequester
+  ): Promise<PaymentResponse[]> {
+    if (requester.role === 'manager') {
+      if (!requester.messId || requester.messId !== messId) {
+        throw new AppError('Managers can only view payments for their mess', 403);
+      }
+    }
+
     const today = new Date();
-    
+
     const payments = await prisma.payments.findMany({
       where: {
         mess_id: messId,
@@ -205,7 +275,18 @@ export class PaymentService {
     return payments.map(payment => formatPaymentResponse(payment));
   }
 
-  async getPaymentStats(messId: string, month: number, year: number) {
+  async getPaymentStats(
+    messId: string,
+    month: number,
+    year: number,
+    requester: ElevatedRequester
+  ) {
+    if (requester.role === 'manager') {
+      if (!requester.messId || requester.messId !== messId) {
+        throw new AppError('Managers can only view payments for their mess', 403);
+      }
+    }
+
     const payments = await prisma.payments.findMany({
       where: { mess_id: messId, month, year }
     });

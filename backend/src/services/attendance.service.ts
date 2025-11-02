@@ -6,7 +6,7 @@ export class AttendanceService {
 
   async markAttendance(data: MarkAttendanceDTO): Promise<AttendanceResponse> {
     // Verify mess exists
-    const mess = await prisma.messes.findUnique({
+    const mess = await prisma.messes.findFirst({
       where: { id: data.messId, is_active: true }
     });
     if (!mess) {

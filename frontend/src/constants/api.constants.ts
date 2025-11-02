@@ -3,6 +3,9 @@
 const API_VERSION = '/api';
 
 export const API_ENDPOINTS = {
+  // Health Check
+  HEALTH: `${API_VERSION}/health`,
+
   // Authentication
   AUTH: {
     REGISTER: `${API_VERSION}/auth/register`,
@@ -26,7 +29,7 @@ export const API_ENDPOINTS = {
     GET_BY_ID: (messId: string) => `${API_VERSION}/messes/${messId}`,
     UPDATE: (messId: string) => `${API_VERSION}/messes/${messId}`,
     DELETE: (messId: string) => `${API_VERSION}/messes/${messId}`,
-    REQUEST_JOIN: `${API_VERSION}/messes/join`,
+    JOIN_MESS: `${API_VERSION}/messes/join`,
     REGENERATE_QR: (messId: string) => `${API_VERSION}/messes/${messId}/qr-code`,
     GET_MEMBERS: (messId: string) => `${API_VERSION}/messes/${messId}/members`,
     UPDATE_MEMBER_STATUS: (messId: string, memberId: string) => `${API_VERSION}/messes/${messId}/members/${memberId}/status`,
@@ -54,11 +57,11 @@ export const API_ENDPOINTS = {
 
   // Leave Management
   LEAVE: {
-    CREATE: (messId: string) => `${API_VERSION}/leaves/${messId}`,
+    CREATE: `${API_VERSION}/leaves`,
     GET_MY_LEAVES: `${API_VERSION}/leaves/my-leaves`,
     GET_BY_ID: (leaveId: string) => `${API_VERSION}/leaves/${leaveId}`,
-    GET_MESS_LEAVES: (messId: string) => `${API_VERSION}/leaves/${messId}/all`,
-    GET_STATS: (messId: string) => `${API_VERSION}/leaves/${messId}/stats`,
+    GET_MESS_LEAVES: (messId: string) => `${API_VERSION}/leaves/mess/${messId}`,
+    GET_STATS: (messId: string) => `${API_VERSION}/leaves/mess/${messId}/stats`,
     GET_MEMBER_LEAVES: (memberId: string) => `${API_VERSION}/leaves/member/${memberId}`,
     UPDATE_STATUS: (leaveId: string) => `${API_VERSION}/leaves/${leaveId}/status`,
     CANCEL: (leaveId: string) => `${API_VERSION}/leaves/${leaveId}/cancel`,
@@ -77,7 +80,7 @@ export const API_ENDPOINTS = {
 
   // Announcements
   ANNOUNCEMENTS: {
-    CREATE: `${API_VERSION}/announcements`,
+    CREATE: (messId: string) => `${API_VERSION}/announcements/${messId}`,
     GET_BY_ID: (announcementId: string) => `${API_VERSION}/announcements/${announcementId}`,
     GET_MESS_ANNOUNCEMENTS: (messId: string) => `${API_VERSION}/announcements/mess/${messId}`,
     UPDATE: (announcementId: string) => `${API_VERSION}/announcements/${announcementId}`,
@@ -88,15 +91,13 @@ export const API_ENDPOINTS = {
   FEEDBACK: {
     CREATE: `${API_VERSION}/feedback`,
     GET_BY_ID: (feedbackId: string) => `${API_VERSION}/feedback/${feedbackId}`,
-    GET_MY_FEEDBACK: `${API_VERSION}/feedback/my-feedback`,
     GET_MESS_FEEDBACK: (messId: string) => `${API_VERSION}/feedback/mess/${messId}`,
     GET_STATS: (messId: string) => `${API_VERSION}/feedback/mess/${messId}/stats`,
-    GET_FOOD_RATINGS: (messId: string) => `${API_VERSION}/feedback/mess/${messId}/food-ratings`,
   },
 
   // Notifications
   NOTIFICATIONS: {
-    GET_USER_NOTIFICATIONS: `${API_VERSION}/notifications`,
+    GET_ALL: `${API_VERSION}/notifications`,
     GET_UNREAD_COUNT: `${API_VERSION}/notifications/unread-count`,
     MARK_READ: (notificationId: string) => `${API_VERSION}/notifications/${notificationId}/read`,
     MARK_ALL_READ: `${API_VERSION}/notifications/read-all`,
